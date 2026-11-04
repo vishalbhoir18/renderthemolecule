@@ -60,7 +60,8 @@ def test_credit_line_and_metadata(tmp_path):
         assert corner(plain).getextrema() == ((255, 255), (255, 255), (255, 255))
         for meta in (with_credit.text, plain.text):  # metadata is always there
             assert meta["Title"] == "PDB 4HHB, rendered with Render the Molecule"
-            assert "Vishal Bhoir" in meta["Software"] and "Molecular Nodes 520.2.0" in meta["Software"]
+            assert "Vishal Bhoir (ORCID https://orcid.org/0009-0004-8803-1967" in meta["Software"]
+            assert "Molecular Nodes 520.2.0" in meta["Software"]
             assert meta["Source"].endswith("https://www.rcsb.org/structure/4HHB")
             assert meta["Description"] == about.legend_sentence("4hhb", VERSIONS)
             assert "10.1093/nar/28.1.235" in meta["Comment"]

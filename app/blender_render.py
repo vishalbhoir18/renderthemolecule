@@ -175,7 +175,8 @@ def png_metadata(pdb_id: str, versions: dict[str, str]):
     info.add_text("Title", f"PDB {code}, rendered with {about.APP_NAME}")
     info.add_text(
         "Software",
-        f"{about.APP_NAME} {versions['app']} by {about.AUTHOR} ({about.REPO_URL}); "
+        f"{about.APP_NAME} {versions['app']} by {about.AUTHOR} "
+        f"(ORCID {about.AUTHOR_ORCID}; {about.REPO_URL}); "
         f"Molecular Nodes {versions['molecularnodes']}; Blender {versions['blender']}",
     )
     info.add_text("Source", f"RCSB Protein Data Bank entry {code}: {about.rcsb_url(pdb_id)}")

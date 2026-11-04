@@ -13,6 +13,8 @@ APP_NAME = "Render the Molecule"
 APP_VERSION = "0.1.0"
 AUTHOR = "Vishal Bhoir"
 AUTHOR_APA = "Bhoir, V."
+AUTHOR_ORCID = "https://orcid.org/0009-0004-8803-1967"
+LICENSE = "GPL-3.0-or-later"
 REPO_URL = "https://github.com/vishalbhoir18/renderthemolecule"
 YEAR = "2026"
 # DOI of this tool once archived on Zenodo (e.g. "10.5281/zenodo.1234567"); see README.

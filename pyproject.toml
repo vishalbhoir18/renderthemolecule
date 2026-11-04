@@ -3,6 +3,13 @@ name = "renderthemolecule"
 version = "0.1.0"
 description = "Web app: PDB ID in, Blender + Molecular Nodes image out."
 requires-python = "==3.13.*"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [{ name = "Vishal Bhoir" }]
+
+[project.urls]
+Source = "https://github.com/vishalbhoir18/renderthemolecule"
+ORCID = "https://orcid.org/0009-0004-8803-1967"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

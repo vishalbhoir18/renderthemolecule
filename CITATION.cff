@@ -8,8 +8,10 @@ type: software
 authors:
   - family-names: Bhoir
     given-names: Vishal
+    orcid: "https://orcid.org/0009-0004-8803-1967"
 version: 0.1.0
 date-released: "2026-11-04"
+license: GPL-3.0-or-later
 repository-code: "https://github.com/vishalbhoir18/renderthemolecule"
 abstract: >-
   A web application that renders publication-quality images of Protein Data

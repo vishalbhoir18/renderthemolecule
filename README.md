@@ -6,6 +6,7 @@ colorTo: blue
 sdk: docker
 app_port: 7860
 pinned: false
+license: gpl-3.0
 short_description: Publication-quality images from a PDB ID (Blender + Molecular Nodes)
 ---
 
@@ -23,7 +24,8 @@ and biological assemblies. Visitors give their name and email, and every render
 can be recorded in a private Google Sheet (see below). Each image credits its
 sources and comes with a ready-made citation.
 
-Developed by **Vishal Bhoir**.
+Developed by **Vishal Bhoir** ([ORCID 0009-0004-8803-1967](https://orcid.org/0009-0004-8803-1967)).
+Free software under the GNU GPL v3 or later.
 
 ## How it works
 
@@ -197,7 +199,8 @@ images are not reused.
 
 ## Credits and how to cite
 
-Render the Molecule was developed by **Vishal Bhoir**. Images are made with
+Render the Molecule was developed by **Vishal Bhoir**
+(ORCID [0009-0004-8803-1967](https://orcid.org/0009-0004-8803-1967)). Images are made with
 [Molecular Nodes](https://github.com/BradyAJohnston/MolecularNodes) by Brady Johnston and
 contributors and with [Blender](https://www.blender.org); structures come from the
 [RCSB Protein Data Bank](https://www.rcsb.org).
@@ -242,7 +245,15 @@ repository"** button (from `CITATION.cff`) gives the same reference in APA and B
 When a paper about the tool is published, cite the paper instead and keep the Zenodo DOI for
 the exact software version.
 
-## Licences
+## Licence
 
-Blender is GPL and Molecular Nodes is GPL-3.0. Because this app imports GPL-3.0 code, release
-your copy under a GPL-compatible licence if you distribute it.
+Copyright (C) 2026 Vishal Bhoir.
+
+This program is free software: you can redistribute it and/or modify it under the terms of the
+GNU General Public License as published by the Free Software Foundation, either version 3 of
+the License, or (at your option) any later version. It is distributed in the hope that it will
+be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See [`LICENSE`](LICENSE) for the full text.
+
+It builds on Molecular Nodes (GPL-3.0) and Blender (GPL). Structure data from the PDB is free
+of usage restrictions, but please cite the entries you render.
