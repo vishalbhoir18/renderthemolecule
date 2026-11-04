@@ -34,6 +34,16 @@ def make_renderer(settings: Settings) -> RenderFn:
     return render
 
 
+def blender_environment() -> dict[str, str]:
+    """Environment for the Blender process.
+
+    Biotite imports matplotlib, which refuses to start if MPLBACKEND names a
+    backend that is not installed. Google Colab sets MPLBACKEND to its notebook
+    backend, which crashed every render there; the plain Agg backend always works.
+    """
+    return {**os.environ, "PYTHONWARNINGS": "ignore", "MPLBACKEND": "Agg"}
+
+
 def run_blender(
     request: RenderRequest, structure: Path, output: Path, settings: Settings
 ) -> dict:
@@ -63,7 +73,7 @@ def run_blender(
                     stdout=log_file,
                     stderr=subprocess.STDOUT,
                     timeout=settings.render_timeout,
-                    env={**os.environ, "PYTHONWARNINGS": "ignore"},
+                    env=blender_environment(),
                 )
             except subprocess.TimeoutExpired as exc:
                 raise UserError(
@@ -77,13 +87,17 @@ def run_blender(
             raise UserError(result.get("error") or "Rendering failed.")
         if proc.returncode != 0 or not tmp_png.exists():
             tail = log_path.read_text(errors="replace").splitlines()[-40:]
+            tail = [line for line in tail if not line.startswith("Fra:")]
             log.error(
                 "render of %s failed (exit %s):\n%s",
                 request.pdb_id,
                 proc.returncode,
                 "\n".join(tail),
             )
-            raise RuntimeError(f"Blender exited with code {proc.returncode}")
+            raise RuntimeError(
+                f"Blender exited with code {proc.returncode}. Last lines of its log:\n"
+                + "\n".join(tail[-15:])
+            )
 
         os.replace(tmp_png, output)
         log.info("rendered %s %s", request.pdb_id, result)

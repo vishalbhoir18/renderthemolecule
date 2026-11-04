@@ -16,6 +16,7 @@ import argparse
 import json
 import sys
 import time
+import traceback
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -90,6 +91,11 @@ def main(argv: list[str] | None = None) -> int:
     except UserError as exc:
         job.status, job.error, job.finished_at = "failed", str(exc), time.time()
         result = {"ok": False, "error": str(exc)}
+    except Exception as exc:  # crash: still write result.json so the caller can explain it
+        traceback.print_exc()
+        message = f"Rendering failed ({type(exc).__name__}): {exc}"
+        job.status, job.error, job.finished_at = "failed", message.splitlines()[0], time.time()
+        result = {"ok": False, "error": message}
     else:
         job.status, job.finished_at = "done", time.time()
         result = {

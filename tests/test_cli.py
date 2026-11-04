@@ -78,6 +78,21 @@ def test_failed_render_still_produces_a_sheet_row(tmp_path, fake_pipeline, monke
     assert result["row"]["status"] == "failed" and result["row"]["source"] == "Colab"
 
 
+def test_a_crash_still_writes_result_and_sheet_row(tmp_path, fake_pipeline, monkeypatch, capsys):
+    def crash(request, structure, output, settings):
+        raise RuntimeError("Blender exited with code 1. Last lines of its log:\nValueError: Key backend")
+
+    monkeypatch.setattr(cli, "run_blender", crash)
+    out = tmp_path / "out"
+    assert cli.main(BASE + ["--out", str(out)]) == 2
+    result = json.loads((out / "result.json").read_text())
+    assert result["error"].startswith("Rendering failed (RuntimeError): Blender exited with code 1")
+    assert "ValueError: Key backend" in result["error"]
+    assert result["row"]["status"] == "failed"
+    assert result["row"]["error"] == "Rendering failed (RuntimeError): Blender exited with code 1. Last lines of its log:"
+    assert "Traceback" in capsys.readouterr().err
+
+
 def test_help_lists_every_option(capsys):
     with pytest.raises(SystemExit):
         cli.main(["--help"])
