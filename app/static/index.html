@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Render the Molecule</title>
   <meta name="description" content="Publication-quality images of any Protein Data Bank entry, rendered with Blender and Molecular Nodes.">
+  <meta name="author" content="Vishal Bhoir">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='10' cy='11' r='6' fill='%230f766e'/%3E%3Ccircle cx='22' cy='21' r='7' fill='%2314b8a6'/%3E%3Ccircle cx='23' cy='8' r='4' fill='%235eead4'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -88,6 +89,10 @@
           <input type="checkbox" id="assembly" name="assembly">
           <span>Biological assembly <small>(full complex, e.g. a whole virus capsid)</small></span>
         </label>
+        <label class="check">
+          <input type="checkbox" id="credit" name="credit">
+          <span>Credit line on the image <small>(PDB ID, Molecular Nodes, this tool; untick for a clean figure and cite in the text instead)</small></span>
+        </label>
       </details>
 
       <button id="submit" type="submit" class="primary">Render image</button>
@@ -116,15 +121,29 @@
         <a id="rcsb" class="button" href="#" target="_blank" rel="noopener">View entry on RCSB PDB</a>
         <span id="meta" class="meta"></span>
       </div>
+      <section id="cite" class="cite" aria-labelledby="cite-title" hidden>
+        <div class="cite-head">
+          <h3 id="cite-title">How to cite this image</h3>
+          <button type="button" id="copy-cite" class="button small">Copy</button>
+        </div>
+        <p class="cite-label">For the figure legend or methods:</p>
+        <p id="cite-legend" class="cite-text"></p>
+        <p class="cite-label">References:</p>
+        <ol id="cite-refs" class="cite-text"></ol>
+      </section>
     </section>
   </main>
 
   <footer class="wrap site-footer">
+    <p class="credit">
+      <strong>Render the Molecule</strong> was developed by <strong>Vishal Bhoir</strong>.
+      Source code on <a href="https://github.com/vishalbhoir18/renderthemolecule" target="_blank" rel="noopener">GitHub</a>.
+    </p>
     <p>
-      Rendered with <a href="https://www.blender.org" target="_blank" rel="noopener">Blender</a> and
-      <a href="https://github.com/BradyAJohnston/MolecularNodes" target="_blank" rel="noopener">Molecular Nodes</a>.
-      Structures from the <a href="https://www.rcsb.org" target="_blank" rel="noopener">RCSB Protein Data Bank</a>.
-      If you publish an image, please cite Molecular Nodes and the PDB entry.
+      Images are rendered with <a href="https://github.com/BradyAJohnston/MolecularNodes" target="_blank" rel="noopener">Molecular Nodes</a>
+      by Brady Johnston and contributors, and <a href="https://www.blender.org" target="_blank" rel="noopener">Blender</a>.
+      Structures come from the <a href="https://www.rcsb.org" target="_blank" rel="noopener">RCSB Protein Data Bank</a>.
+      If you publish an image, please cite this tool, Molecular Nodes and the PDB entry; each result shows how.
     </p>
   </footer>
 

@@ -72,9 +72,9 @@ def test_submission_rejects_bad_visitor_details(name, email):
 
 
 def test_share_query_round_trips_through_the_form_names():
-    req = RenderRequest(pdb_id="pdb_00004hhb", ligands=False)
+    req = RenderRequest(pdb_id="pdb_00004hhb", ligands=False, credit=False)
     assert req.share_query().startswith("id=PDB_00004HHB&style=cartoon")
-    assert req.share_query().endswith("ligands=0&assembly=0")
+    assert req.share_query().endswith("ligands=0&assembly=0&credit=0")
 
 
 def test_option_lists_cover_every_choice_with_valid_defaults():

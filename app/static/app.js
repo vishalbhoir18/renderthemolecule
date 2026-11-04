@@ -1,7 +1,7 @@
 "use strict";
 
 const SELECTS = ["style", "color", "material", "viewpoint", "resolution", "quality", "background"];
-const CHECKS = ["ligands", "assembly"];
+const CHECKS = ["ligands", "assembly", "credit"];
 const STORAGE_KEY = "rtm-options";
 const VISITOR_KEY = "rtm-visitor";  // name + email, kept only in this browser for next time
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -142,7 +142,37 @@ function showResult(job, values) {
   $("rcsb").href = `https://www.rcsb.org/structure/${encodeURIComponent(code)}`;
   $("meta").textContent = job.cached ? "Served from cache" : `Rendered in ${job.render_s} s`;
   $("actions").hidden = false;
+  showCitation(job.pdb_id);
 }
+
+async function showCitation(pdbId) {
+  try {
+    const resp = await fetch(`/api/cite?pdb_id=${encodeURIComponent(pdbId)}`);
+    if (!resp.ok) return;
+    const cite = await resp.json();
+    $("cite-legend").textContent = cite.legend;
+    const list = $("cite-refs");
+    list.replaceChildren(...cite.references.map((text) => {
+      const li = document.createElement("li");
+      li.textContent = text;
+      return li;
+    }));
+    $("cite").hidden = false;
+  } catch { /* the image is still usable without the citation box */ }
+}
+
+$("copy-cite").addEventListener("click", async () => {
+  const refs = [...$("cite-refs").children].map((li, i) => `${i + 1}. ${li.textContent}`);
+  const text = `${$("cite-legend").textContent}\n\nReferences:\n${refs.join("\n")}`;
+  const button = $("copy-cite");
+  try {
+    await navigator.clipboard.writeText(text);
+    button.textContent = "Copied";
+  } catch {
+    button.textContent = "Select and copy";
+  }
+  setTimeout(() => { button.textContent = "Copy"; }, 2000);
+});
 
 async function poll(jobId, values, startedAt) {
   let job;
@@ -186,6 +216,7 @@ form.addEventListener("submit", async (event) => {
   setBusy(true);
   setStatus("Sending request…");
   $("actions").hidden = true;
+  $("cite").hidden = true;
   const options = {};
   for (const name of [...SELECTS, ...CHECKS]) options[name] = values[name];
   writeStored(options);

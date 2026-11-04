@@ -201,7 +201,21 @@ button.primary:disabled { opacity: 0.6; cursor: progress; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .meta { color: var(--muted); font-size: 0.85rem; }
 
+.cite {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+.cite-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cite h3 { margin: 0; font-size: 1rem; }
+.cite-label { margin: 10px 0 4px; font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+.cite-text { margin: 0; font-size: 0.9rem; overflow-wrap: anywhere; }
+ol.cite-text { padding-left: 1.4em; }
+ol.cite-text li { margin-bottom: 4px; }
+.button.small { padding: 4px 12px; font-size: 0.85rem; }
+
 .site-footer { color: var(--muted); font-size: 0.85rem; padding-top: 24px; padding-bottom: 32px; }
+.site-footer p { margin: 0 0 8px; }
+.site-footer .credit { color: var(--text); }
 
 .visually-hidden {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;

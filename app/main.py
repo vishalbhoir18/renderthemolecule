@@ -14,11 +14,13 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import ValidationError
 
+from . import about
 from .config import Settings
 from .errors import QueueFull, TooManyJobs
 from .jobs import Job, JobManager, Submitter
-from .options import Submission, option_lists
+from .options import RenderRequest, Submission, option_lists
 from .renderer import RenderFn, make_renderer
 from .sheet import SheetRecorder, record_row
 
@@ -104,6 +106,21 @@ def create_app(
     @app.get("/api/options")
     def options() -> dict:
         return option_lists()
+
+    versions = about.versions()
+
+    @app.get("/api/cite")
+    def cite(pdb_id: str, request: Request):
+        """How to credit and cite an image of this entry."""
+        try:
+            code = RenderRequest(pdb_id=pdb_id).pdb_id
+        except ValidationError:
+            return _error(422, "Not a valid PDB ID.")
+        return {
+            "credit": about.credit_line(code),
+            "legend": about.legend_sentence(code, versions),
+            "references": about.references(code, _base_url(request, settings), versions),
+        }
 
     @app.post("/api/render", status_code=202)
     def submit(body: Submission, request: Request):

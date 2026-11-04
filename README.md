@@ -20,7 +20,10 @@ Options: style (cartoon, ribbon, surface, spheres, ball-and-stick, sticks),
 colour (by chain, rainbow, secondary structure, Goodsell), material, viewpoint,
 image size, quality, white/black/transparent background, ligand highlighting
 and biological assemblies. Visitors give their name and email, and every render
-can be recorded in a private Google Sheet (see below).
+can be recorded in a private Google Sheet (see below). Each image credits its
+sources and comes with a ready-made citation.
+
+Developed by **Vishal Bhoir**.
 
 ## How it works
 
@@ -192,9 +195,43 @@ uv pip install --exclude-newer <release-date+1> "molecularnodes[bpy]==<version>"
 Bump `RENDER_VERSION` in `app/options.py` when the look of renders changes so old cached
 images are not reused.
 
-## Credits and licences
+## Credits and how to cite
 
-Images are made with Blender (GPL) and Molecular Nodes by Brady Johnston (GPL-3.0); structures
-come from the RCSB Protein Data Bank. If you publish an image, please cite Molecular Nodes and
-the PDB entry. Because this app imports GPL-3.0 code, release your copy under a GPL-compatible
-licence if you distribute it.
+Render the Molecule was developed by **Vishal Bhoir**. Images are made with
+[Molecular Nodes](https://github.com/BradyAJohnston/MolecularNodes) by Brady Johnston and
+contributors and with [Blender](https://www.blender.org); structures come from the
+[RCSB Protein Data Bank](https://www.rcsb.org).
+
+Every image carries its credits in two ways:
+
+* **A small credit line** in the bottom-right corner, for example
+  *"PDB 4HHB · Molecular Nodes · Render the Molecule by Vishal Bhoir"*. It is on by default;
+  untick *Credit line on the image* under *More options* for a clean figure, and cite in the
+  text instead.
+* **PNG metadata** (always): title, software and versions, source entry, and the citation text
+  below. Image viewers show it under file information.
+
+After each render the page shows a **"How to cite this image"** box with a copy button. For
+PDB entry 4HHB it reads:
+
+> The structure of PDB entry 4HHB was rendered with Render the Molecule (v0.1.0; Bhoir, 2026)
+> using Molecular Nodes (v520.2.0; Johnston et al.) and Blender (v5.2.2); structure data from
+> the RCSB Protein Data Bank (Berman et al., 2000).
+
+References (APA 7th):
+
+1. Bhoir, V. (2026). *Render the Molecule* (Version 0.1.0) [Web application]. https://github.com/vishalbhoir18/renderthemolecule
+2. Johnston, B., & Molecular Nodes contributors. (2026). *Molecular Nodes* (Version 520.2.0) [Computer software]. Zenodo. https://zenodo.org/badge/latestdoi/485261976
+3. Blender Online Community. (2026). *Blender* (Version 5.2.2) [Computer software]. Blender Foundation. https://www.blender.org
+4. Berman, H. M., Westbrook, J., Feng, Z., Gilliland, G., Bhat, T. N., Weissig, H., Shindyalov, I. N., & Bourne, P. E. (2000). The Protein Data Bank. *Nucleic Acids Research, 28*(1), 235–242. https://doi.org/10.1093/nar/28.1.235
+5. The primary publication of the PDB entry, listed on its RCSB page (e.g. https://www.rcsb.org/structure/4HHB).
+
+Molecular Nodes has no paper yet; its authors ask to be cited through the Zenodo record above.
+The page's own box uses the address of the live site in reference 1. GitHub's **"Cite this
+repository"** button (from `CITATION.cff`) gives the same reference in APA and BibTeX. When you
+publish a paper about this tool, add its DOI to `CITATION.cff` and `app/about.py`.
+
+## Licences
+
+Blender is GPL and Molecular Nodes is GPL-3.0. Because this app imports GPL-3.0 code, release
+your copy under a GPL-compatible licence if you distribute it.

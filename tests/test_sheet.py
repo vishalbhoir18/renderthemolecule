@@ -41,8 +41,9 @@ def test_record_row():
     assert row["link"] == (
         "https://x.hf.space/?id=6VXX&style=surface&color=default&material=ambient_occlusion"
         "&viewpoint=default&resolution=1280x720&quality=standard&background=white"
-        "&ligands=1&assembly=1"
+        "&ligands=1&assembly=1&credit=1"
     )
+    assert row["credit"] == "yes"
     cached = sheet.record_row(make_job(cached=True), submitter)
     assert cached["cached"] == "yes" and cached["render_s"] == ""
 

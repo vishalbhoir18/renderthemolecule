@@ -15,7 +15,7 @@ from urllib.parse import urlencode
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # Bump when the look of renders changes, so cached images are not reused.
-RENDER_VERSION = "1"
+RENDER_VERSION = "2"  # 2: credit line and PNG metadata
 
 # Classic IDs (4HHB) and the extended wwPDB format (pdb_00004hhb).
 PDB_ID_RE = re.compile(r"^(?:[1-9][a-z0-9]{3}|pdb_[0-9a-z]{8})$")
@@ -122,6 +122,7 @@ class RenderRequest(BaseModel):
     background: Background = "white"
     assembly: bool = False
     ligands: bool = True
+    credit: bool = True  # small credit line in the corner of the image
 
     @field_validator("pdb_id", mode="before")
     @classmethod
@@ -159,8 +160,8 @@ class RenderRequest(BaseModel):
         params = {"id": self.pdb_id.upper()}
         for name in ("style", "color", "material", "viewpoint", "resolution", "quality", "background"):
             params[name] = getattr(self, name)
-        params["ligands"] = "1" if self.ligands else "0"
-        params["assembly"] = "1" if self.assembly else "0"
+        for name in ("ligands", "assembly", "credit"):
+            params[name] = "1" if getattr(self, name) else "0"
         return urlencode(params)
 
 

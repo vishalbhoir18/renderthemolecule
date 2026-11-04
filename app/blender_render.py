@@ -17,6 +17,7 @@ import sys
 import time
 from pathlib import Path
 
+from app import about
 from app.options import ATOMIC_STYLES, BACKBONE_STYLES, BACKGROUND_RGB
 
 # Non-polymer, non-water atoms: ligands, cofactors, ions.
@@ -50,7 +51,6 @@ def _color(name: str):
 
 def render(spec: dict) -> dict:
     import molecularnodes as mn
-    from PIL import Image
 
     timings = {}
     t0 = time.monotonic()
@@ -119,19 +119,69 @@ def render(spec: dict) -> dict:
     canvas.snapshot(str(raw))
     timings["render_s"] = round(time.monotonic() - t1, 1)
 
-    # Cycles renders with a transparent film; fill the background afterwards so
-    # the lighting is identical whatever background colour is chosen.
+    finish_image(raw, output, spec, about.versions())
+    raw.unlink(missing_ok=True)
+    return {"atoms": estimated, **timings}
+
+
+def finish_image(raw: Path, output: Path, spec: dict, versions: dict[str, str]) -> None:
+    """Fill the background, add the credit line, and embed credits in the PNG."""
+    from PIL import Image
+
+    # Cycles renders with a transparent film; filling the background afterwards
+    # keeps the lighting identical whatever background colour is chosen.
     image = Image.open(raw).convert("RGBA")
     rgb = BACKGROUND_RGB[spec["background"]]
-    if rgb is None:
-        image.save(output, optimize=True)
-    else:
-        canvas_img = Image.new("RGBA", image.size, (*rgb, 255))
-        canvas_img.alpha_composite(image)
-        canvas_img.convert("RGB").save(output, optimize=True)
-    raw.unlink(missing_ok=True)
+    if rgb is not None:
+        filled = Image.new("RGBA", image.size, (*rgb, 255))
+        filled.alpha_composite(image)
+        image = filled
+    if spec.get("credit", True):
+        _draw_credit(image, about.credit_line(spec["pdb_id"]), rgb)
+    if rgb is not None:
+        image = image.convert("RGB")
+    image.save(output, optimize=True, pnginfo=png_metadata(spec["pdb_id"], versions))
 
-    return {"atoms": estimated, **timings}
+
+def _draw_credit(image, text: str, background: tuple[int, int, int] | None) -> None:
+    """Small grey text in the bottom-right corner, scaled to the image width."""
+    from PIL import ImageDraw, ImageFont
+
+    width, height = image.size
+    margin = max(8, round(width / 100))
+    size = max(11, round(width / 90))
+    draw = ImageDraw.Draw(image)
+    while True:
+        font = ImageFont.load_default(size=size)
+        left, _, right, bottom = draw.textbbox((0, 0), text, font=font)
+        if right - left <= width - 2 * margin or size <= 8:
+            break
+        size -= 1
+    if background is None:
+        fill = (128, 128, 128, 255)  # readable on light and dark pages
+    elif sum(background) > 382:
+        fill = (110, 110, 110, 255)
+    else:
+        fill = (165, 165, 165, 255)
+    draw.text((width - margin - right, height - margin - bottom), text, font=font, fill=fill)
+
+
+def png_metadata(pdb_id: str, versions: dict[str, str]):
+    """Credits stored inside the PNG file (visible in image viewers' file info)."""
+    from PIL.PngImagePlugin import PngInfo
+
+    code = about.display_id(pdb_id)
+    info = PngInfo()
+    info.add_text("Title", f"PDB {code}, rendered with {about.APP_NAME}")
+    info.add_text(
+        "Software",
+        f"{about.APP_NAME} {versions['app']} by {about.AUTHOR} ({about.REPO_URL}); "
+        f"Molecular Nodes {versions['molecularnodes']}; Blender {versions['blender']}",
+    )
+    info.add_text("Source", f"RCSB Protein Data Bank entry {code}: {about.rcsb_url(pdb_id)}")
+    info.add_text("Description", about.legend_sentence(pdb_id, versions))
+    info.add_text("Comment", "How to cite: " + " | ".join(about.references(pdb_id, "", versions)))
+    return info
 
 
 def main(argv: list[str]) -> int:

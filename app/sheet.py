@@ -21,7 +21,7 @@ log = logging.getLogger(__name__)
 # Column order; must match KEYS in google-sheet/Code.gs.
 ROW_KEYS = [
     "time", "name", "email", "pdb_id", "style", "color", "material", "viewpoint",
-    "resolution", "quality", "background", "ligands", "assembly",
+    "resolution", "quality", "background", "ligands", "assembly", "credit",
     "status", "cached", "render_s", "error", "link",
 ]
 
@@ -45,6 +45,7 @@ def record_row(job: Job, submitter: Submitter) -> dict:
         "background": req.background,
         "ligands": "yes" if req.ligands else "no",
         "assembly": "yes" if req.assembly else "no",
+        "credit": "yes" if req.credit else "no",
         "status": job.status,
         "cached": "yes" if job.cached else "no",
         "render_s": render_s,
