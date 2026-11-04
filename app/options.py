@@ -10,14 +10,20 @@ import hashlib
 import json
 import re
 from typing import Literal, get_args
+from urllib.parse import urlencode
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # Bump when the look of renders changes, so cached images are not reused.
 RENDER_VERSION = "1"
 
 # Classic IDs (4HHB) and the extended wwPDB format (pdb_00004hhb).
 PDB_ID_RE = re.compile(r"^(?:[1-9][a-z0-9]{3}|pdb_[0-9a-z]{8})$")
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+NAME_MAX = 100
+EMAIL_MAX = 254
+# Spreadsheets treat text starting with these as a formula.
+FORMULA_START = ("=", "+", "-", "@")
 
 Style = Literal["cartoon", "ribbon", "surface", "spheres", "ball_and_stick", "sticks"]
 ColorScheme = Literal["default", "rainbow", "secondary_structure", "goodsell"]
@@ -141,13 +147,64 @@ class RenderRequest(BaseModel):
 
     def cache_key(self) -> str:
         """Content hash: identical requests map to the same image file."""
-        payload = json.dumps(
-            {"v": RENDER_VERSION, **self.model_dump()}, sort_keys=True
-        )
+        options = self.model_dump(include=set(RenderRequest.model_fields))
+        payload = json.dumps({"v": RENDER_VERSION, **options}, sort_keys=True)
         return hashlib.sha256(payload.encode()).hexdigest()
 
     def download_name(self) -> str:
         return f"{self.pdb_id}_{self.style}_{self.color}.png"
+
+    def share_query(self) -> str:
+        """Query string that reopens the page with these options (see app.js)."""
+        params = {"id": self.pdb_id.upper()}
+        for name in ("style", "color", "material", "viewpoint", "resolution", "quality", "background"):
+            params[name] = getattr(self, name)
+        params["ligands"] = "1" if self.ligands else "0"
+        params["assembly"] = "1" if self.assembly else "0"
+        return urlencode(params)
+
+
+class Submission(RenderRequest):
+    """What the web form posts: the render options plus who is asking.
+
+    Name and email are recorded (see app/sheet.py) but are not part of the
+    image cache key, so everyone shares cached renders.
+    """
+
+    name: str = Field(default="", validate_default=True)
+    email: str = Field(default="", validate_default=True)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _check_name(cls, value: object) -> str:
+        name = " ".join(value.split()) if isinstance(value, str) else ""
+        if not name:
+            raise ValueError("Please enter your name.")
+        if len(name) > NAME_MAX:
+            raise ValueError(f"Your name is too long (at most {NAME_MAX} characters).")
+        if name.startswith(FORMULA_START):
+            raise ValueError("Your name cannot start with =, +, - or @.")
+        if not name.isprintable():
+            raise ValueError("Your name contains characters that are not allowed.")
+        return name
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _check_email(cls, value: object) -> str:
+        email = value.strip() if isinstance(value, str) else ""
+        if not email:
+            raise ValueError("Please enter your email address.")
+        if (
+            len(email) > EMAIL_MAX
+            or not EMAIL_RE.fullmatch(email)
+            or email.startswith(FORMULA_START)
+            or not email.isprintable()
+        ):
+            raise ValueError("Please enter a valid email address, like name@university.edu.")
+        return email.lower()
+
+    def render_request(self) -> RenderRequest:
+        return RenderRequest(**self.model_dump(exclude={"name", "email"}))
 
 
 def option_lists() -> dict:

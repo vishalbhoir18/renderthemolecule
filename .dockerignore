@@ -4,5 +4,6 @@
 venv
 data
 tests
+google-sheet
 **/__pycache__
 *.pyc

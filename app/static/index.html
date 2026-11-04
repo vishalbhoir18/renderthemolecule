@@ -19,6 +19,18 @@
   <main class="wrap layout">
     <form id="render-form" class="panel" novalidate>
       <div class="field">
+        <label for="name">Your name</label>
+        <input id="name" name="name" type="text" autocomplete="name" maxlength="100" required>
+      </div>
+      <div class="field">
+        <label for="email">Your email</label>
+        <input id="email" name="email" type="email" autocomplete="email" maxlength="254"
+               placeholder="name@university.edu" required>
+        <p class="note">Both are required. Your name, email and the images you render are recorded
+          privately by the site owner to see who uses this tool. They are not shown to other visitors.</p>
+      </div>
+
+      <div class="field">
         <label for="pdb_id">PDB ID</label>
         <input id="pdb_id" name="pdb_id" type="text" inputmode="text" autocomplete="off"
                autocapitalize="characters" spellcheck="false" maxlength="12"

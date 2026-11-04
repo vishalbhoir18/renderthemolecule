@@ -50,6 +50,12 @@ class Settings:
     max_atoms_backbone: int = 3_000_000  # cartoon, ribbon
     max_atoms_atomic: int = 1_000_000  # surface, spheres
     max_atoms_bonds: int = 300_000  # ball_and_stick, sticks
+    # Google Sheet record of who rendered what (see google-sheet/Code.gs).
+    sheet_webhook_url: str = ""
+    sheet_token: str = ""
+    # Address of the site, used for the "open again" link in each record.
+    # Empty: taken from SPACE_HOST on Hugging Face, else from the request.
+    public_url: str = ""
 
     @property
     def renders_dir(self) -> Path:
@@ -80,6 +86,10 @@ class Settings:
     @classmethod
     def from_env(cls) -> "Settings":
         base = cls()
+        public_url = os.environ.get("PUBLIC_URL", "")
+        if not public_url and os.environ.get("SPACE_HOST"):
+            # Set by Hugging Face Spaces, e.g. "yourname-renderthemolecule.hf.space".
+            public_url = f"https://{os.environ['SPACE_HOST']}"
         return cls(
             data_dir=Path(os.environ.get("DATA_DIR", base.data_dir)).absolute(),
             structure_url=os.environ.get("STRUCTURE_URL", base.structure_url),
@@ -99,4 +109,7 @@ class Settings:
             max_atoms_backbone=_env_int("MAX_ATOMS_BACKBONE", base.max_atoms_backbone),
             max_atoms_atomic=_env_int("MAX_ATOMS_ATOMIC", base.max_atoms_atomic),
             max_atoms_bonds=_env_int("MAX_ATOMS_BONDS", base.max_atoms_bonds),
+            sheet_webhook_url=os.environ.get("SHEET_WEBHOOK_URL", "").strip(),
+            sheet_token=os.environ.get("SHEET_TOKEN", "").strip(),
+            public_url=public_url.rstrip("/"),
         )

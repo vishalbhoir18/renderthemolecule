@@ -13,6 +13,7 @@ import threading
 import time
 import uuid
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -40,6 +41,16 @@ def _mark_used(path: Path) -> bool:
         return False
 
 
+@dataclass(frozen=True)
+class Submitter:
+    """Who asked for a render. Never included in job status responses."""
+
+    name: str
+    email: str
+    base_url: str  # where the site is served, for the "open again" link
+    submitted_at: float = field(default_factory=time.time)
+
+
 @dataclass(eq=False)
 class Job:
     request: RenderRequest
@@ -53,16 +64,25 @@ class Job:
     created_at: float = field(default_factory=time.time)
     started_at: float | None = None
     finished_at: float | None = None
+    # Everyone waiting for this picture (identical requests share one job).
+    submitters: list[Submitter] = field(default_factory=list)
 
     @property
     def active(self) -> bool:
         return self.status in ("queued", "running")
 
 
+# Called once per submitter when their job has finished (done or failed).
+ResultHook = Callable[[Job, Submitter], None]
+
+
 class JobManager:
-    def __init__(self, settings: Settings, render_fn: RenderFn):
+    def __init__(
+        self, settings: Settings, render_fn: RenderFn, on_result: ResultHook | None = None
+    ):
         self.settings = settings
         self._render_fn = render_fn
+        self._on_result = on_result
         self._cv = threading.Condition()
         self._queue: deque[Job] = deque()
         self._jobs: dict[str, Job] = {}
@@ -88,35 +108,43 @@ class JobManager:
     def output_path(self, key: str) -> Path:
         return self.settings.renders_dir / f"{key}.png"
 
-    def submit(self, request: RenderRequest, client: str) -> Job:
+    def submit(
+        self, request: RenderRequest, client: str, submitter: Submitter | None = None
+    ) -> Job:
         key = request.cache_key()
+        submitters = [submitter] if submitter else []
         with self._cv:
             self._forget_old_jobs()
 
             if _mark_used(self.output_path(key)):
                 now = time.time()
                 job = Job(request, key, client, status="done", cached=True,
-                          started_at=now, finished_at=now)
+                          started_at=now, finished_at=now, submitters=submitters)
                 self._jobs[job.id] = job
-                return job
+                cache_hit = True
+            else:
+                cache_hit = False
+                # Same picture already on its way: share that job.
+                job = self._active_by_key.get(key)
+                if job is not None:
+                    job.submitters.extend(submitters)
+                    return job
 
-            # Same picture already on its way: share that job.
-            existing = self._active_by_key.get(key)
-            if existing is not None:
-                return existing
+                if len(self._queue) >= self.settings.max_queue:
+                    raise QueueFull
+                mine = sum(1 for j in self._active_by_key.values() if j.client == client)
+                if mine >= self.settings.max_active_per_client:
+                    raise TooManyJobs
 
-            if len(self._queue) >= self.settings.max_queue:
-                raise QueueFull
-            mine = sum(1 for j in self._active_by_key.values() if j.client == client)
-            if mine >= self.settings.max_active_per_client:
-                raise TooManyJobs
+                job = Job(request, key, client, submitters=submitters)
+                self._jobs[job.id] = job
+                self._active_by_key[key] = job
+                self._queue.append(job)
+                self._cv.notify()
 
-            job = Job(request, key, client)
-            self._jobs[job.id] = job
-            self._active_by_key[key] = job
-            self._queue.append(job)
-            self._cv.notify()
-            return job
+        if cache_hit:  # already finished: record it now (outside the lock)
+            self._report(job, submitters)
+        return job
 
     def get(self, job_id: str) -> Job | None:
         with self._cv:
@@ -184,8 +212,20 @@ class JobManager:
                 job.finished_at = time.time()
                 self._running = None
                 self._active_by_key.pop(job.key, None)
+                # No one can join the job any more, so this list is final.
+                submitters = list(job.submitters)
 
+            self._report(job, submitters)
             self._prune_caches(keep=self.output_path(job.key))
+
+    def _report(self, job: Job, submitters: list[Submitter]) -> None:
+        if self._on_result is None:
+            return
+        for submitter in submitters:
+            try:
+                self._on_result(job, submitter)
+            except Exception:
+                log.exception("recording the result of job %s failed", job.id)
 
     def _prune_caches(self, keep: Path) -> None:
         try:

@@ -19,7 +19,8 @@ No Blender installation is needed on the visitor's side; everything runs on the 
 Options: style (cartoon, ribbon, surface, spheres, ball-and-stick, sticks),
 colour (by chain, rainbow, secondary structure, Goodsell), material, viewpoint,
 image size, quality, white/black/transparent background, ligand highlighting
-and biological assemblies.
+and biological assemblies. Visitors give their name and email, and every render
+can be recorded in a private Google Sheet (see below).
 
 ## How it works
 
@@ -78,6 +79,46 @@ Things to know about the free tier: the Space sleeps after 48 hours without visi
 next visitor wakes it (the first load then takes a minute or two); its disk is wiped on
 restart, so the image cache starts empty again; the CPUs are shared.
 
+## Record who rendered what in a Google Sheet
+
+Visitors must enter their **name and email** before rendering. Each finished request
+(including ones served from the cache, and failed ones) adds a row to a private Google
+Sheet in your own Google account:
+
+| Time | Name | Email | PDB ID | Style | Colour | … all options | Status | From cache | Render time (s) | Error | Open again |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+
+*Open again* is a link that reopens the site with the same settings, so you can see any
+image a person made without storing images anywhere. Names and emails are never shown to
+other visitors or put in shared links. Nothing checks that an email address is real.
+
+Set it up once, in about 10 minutes:
+
+1. Create a new Google Sheet (any name), for example at <https://sheets.new>.
+2. In the Sheet, open **Extensions → Apps Script**. Delete what is in the editor, paste in
+   the whole of [`google-sheet/Code.gs`](google-sheet/Code.gs), and replace `CHANGE-ME` in
+   the `TOKEN` line with a long random password of your choice. Click **Save**.
+3. Click **Deploy → New deployment**. Next to "Select type" click the gear icon and choose
+   **Web app**. Set **Execute as: Me** and **Who has access: Anyone**, then click **Deploy**.
+4. Google asks you to authorise the script. Choose your account; on the "Google hasn't
+   verified this app" screen click **Advanced → Go to … (unsafe)**. This warning appears
+   for every personal script, and the script only touches this one Sheet.
+5. Copy the **Web app URL** (it ends in `/exec`). To check it, open it in a browser: it
+   should say *"Render the Molecule recorder is running"*.
+6. In your Hugging Face Space, open **Settings → Variables and secrets** and add two
+   **secrets**: `SHEET_WEBHOOK_URL` = the Web app URL, and `SHEET_TOKEN` = the same
+   password as in step 2. The Space restarts. A "Renders" tab with a header row appears in
+   the Sheet after the first render.
+
+If you later change the script, use **Deploy → Manage deployments → Edit → Version: New
+version**, or Google keeps serving the old code. If the Sheet cannot be reached, the app
+keeps rendering and retries sending the rows (they are lost only if the Space restarts
+before the Sheet is reachable again). The Space logs say why a send failed, for example
+a wrong token.
+
+Because the site records personal data, keep the Sheet private and delete a person's rows
+if they ask you to.
+
 ## Run it elsewhere
 
 The same image runs on any **x86-64** Docker host. Google Cloud Run and Cloudflare Containers
@@ -120,10 +161,13 @@ All settings are environment variables (see `app/config.py`).
 | `MAX_ATOMS_BACKBONE` / `_ATOMIC` / `_BONDS` | 3M / 1M / 300k | Atom limits for cartoon+ribbon / surface+spheres / sticks+ball-and-stick |
 | `RENDERS_CACHE_MB`, `STRUCTURES_CACHE_MB` | `2000` | Disk caches; oldest files are deleted first |
 | `STRUCTURE_URL` | `https://models.rcsb.org/{code}.bcif` | Download source |
+| `SHEET_WEBHOOK_URL` | (none) | Google Apps Script web app URL for the record of renders |
+| `SHEET_TOKEN` | (none) | Password shared with the Apps Script (`TOKEN` in `Code.gs`) |
+| `PUBLIC_URL` | `https://$SPACE_HOST` | Site address used in the "Open again" links |
 
 ## API
 
-* `POST /api/render` with JSON such as `{"pdb_id": "4HHB", "style": "surface"}` returns a job (HTTP 202).
+* `POST /api/render` with JSON such as `{"pdb_id": "4HHB", "style": "surface", "name": "Ada Lovelace", "email": "ada@example.org"}` returns a job (HTTP 202).
 * `GET /api/jobs/{id}` returns `status` (`queued` / `running` / `done` / `failed`), `jobs_ahead`, `image_url` and `error`.
 * `GET /api/options` lists every choice and its default; interactive docs are at `/api/docs`.
 

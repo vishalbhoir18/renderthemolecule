@@ -17,12 +17,17 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import Settings
 from .errors import QueueFull, TooManyJobs
-from .jobs import JobManager
-from .options import RenderRequest, option_lists
+from .jobs import Job, JobManager, Submitter
+from .options import Submission, option_lists
 from .renderer import RenderFn, make_renderer
+from .sheet import SheetRecorder, record_row
+
+log = logging.getLogger(__name__)
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 RENDER_NAME_RE = re.compile(r"^[0-9a-f]{64}\.png$")
+# Fields whose validation messages already say which field is wrong.
+SELF_EXPLAINING_FIELDS = {"pdb_id", "name", "email"}
 
 
 def _error(status: int, message: str) -> JSONResponse:
@@ -39,17 +44,42 @@ def _client_id(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-def create_app(settings: Settings | None = None, render_fn: RenderFn | None = None) -> FastAPI:
+def _base_url(request: Request, settings: Settings) -> str:
+    if settings.public_url:
+        return settings.public_url
+    proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+    host = request.headers.get("host", request.url.netloc)
+    return f"{proto}://{host}"
+
+
+def create_app(
+    settings: Settings | None = None,
+    render_fn: RenderFn | None = None,
+    recorder: SheetRecorder | None = None,
+) -> FastAPI:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     settings = settings or Settings.from_env()
     settings.ensure_dirs()
-    manager = JobManager(settings, render_fn or make_renderer(settings))
+    if recorder is None and settings.sheet_webhook_url:
+        recorder = SheetRecorder(settings.sheet_webhook_url, settings.sheet_token)
+    if recorder is None:
+        log.warning("SHEET_WEBHOOK_URL is not set: names, emails and renders are NOT being recorded")
+
+    def on_result(job: Job, submitter: Submitter) -> None:
+        if recorder is not None:
+            recorder.add(record_row(job, submitter))
+
+    manager = JobManager(settings, render_fn or make_renderer(settings), on_result=on_result)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        if recorder is not None:
+            recorder.start()
         manager.start()
         yield
         manager.stop()
+        if recorder is not None:
+            recorder.stop()
 
     app = FastAPI(title="Render the Molecule", lifespan=lifespan, docs_url="/api/docs", redoc_url=None)
     app.state.manager = manager
@@ -59,7 +89,7 @@ def create_app(settings: Settings | None = None, render_fn: RenderFn | None = No
         first = exc.errors()[0] if exc.errors() else {}
         message = str(first.get("msg", "Invalid request")).removeprefix("Value error, ")
         field = ".".join(str(p) for p in first.get("loc", [])[1:])
-        if field and field != "pdb_id":
+        if field and field not in SELF_EXPLAINING_FIELDS:
             message = f"{field}: {message}"
         return _error(422, message)
 
@@ -76,9 +106,10 @@ def create_app(settings: Settings | None = None, render_fn: RenderFn | None = No
         return option_lists()
 
     @app.post("/api/render", status_code=202)
-    def submit(body: RenderRequest, request: Request):
+    def submit(body: Submission, request: Request):
+        submitter = Submitter(name=body.name, email=body.email, base_url=_base_url(request, settings))
         try:
-            job = manager.submit(body, _client_id(request))
+            job = manager.submit(body.render_request(), _client_id(request), submitter)
         except QueueFull:
             return _error(503, "The render queue is full right now. Please try again in a few minutes.")
         except TooManyJobs:

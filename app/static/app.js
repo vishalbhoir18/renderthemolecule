@@ -3,11 +3,15 @@
 const SELECTS = ["style", "color", "material", "viewpoint", "resolution", "quality", "background"];
 const CHECKS = ["ligands", "assembly"];
 const STORAGE_KEY = "rtm-options";
+const VISITOR_KEY = "rtm-visitor";  // name + email, kept only in this browser for next time
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const POLL_MS = 1500;
 
 const $ = (id) => document.getElementById(id);
 const form = $("render-form");
 const pdbInput = $("pdb_id");
+const nameInput = $("name");
+const emailInput = $("email");
 const submitBtn = $("submit");
 
 let pollTimer = null;
@@ -15,11 +19,11 @@ let tickTimer = null;
 let currentJob = null;       // id of the job this page is following
 let currentJobState = null;  // its latest status from the server
 
-function readStored() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch { return {}; }
+function readStored(key = STORAGE_KEY) {
+  try { return JSON.parse(localStorage.getItem(key) || "{}"); } catch { return {}; }
 }
-function writeStored(values) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(values)); } catch { /* storage unavailable */ }
+function writeStored(values, key = STORAGE_KEY) {
+  try { localStorage.setItem(key, JSON.stringify(values)); } catch { /* storage unavailable */ }
 }
 
 async function loadOptions() {
@@ -27,6 +31,9 @@ async function loadOptions() {
   const { choices, defaults } = await resp.json();
   const params = new URLSearchParams(location.search);
   const stored = readStored();
+  const visitor = readStored(VISITOR_KEY);
+  nameInput.value = visitor.name || "";
+  emailInput.value = visitor.email || "";
 
   for (const name of SELECTS) {
     const select = $(name);
@@ -45,15 +52,34 @@ async function loadOptions() {
   const id = params.get("id");
   if (id) {
     pdbInput.value = id.toUpperCase();
-    form.requestSubmit();
+    if (nameInput.value && emailInput.value) {
+      form.requestSubmit();
+    } else {
+      showError("Enter your name and email, then press Render image.");
+      (nameInput.value ? emailInput : nameInput).focus();
+    }
   }
 }
 
 function formValues() {
-  const values = { pdb_id: pdbInput.value.trim() };
+  const values = {
+    pdb_id: pdbInput.value.trim(),
+    name: nameInput.value.trim(),
+    email: emailInput.value.trim(),
+  };
   for (const name of SELECTS) values[name] = $(name).value;
   for (const name of CHECKS) values[name] = $(name).checked;
   return values;
+}
+
+// First problem with the form, as [message, field to focus], or null.
+function formProblem(values) {
+  if (!values.name) return ["Please enter your name.", nameInput];
+  if (!EMAIL_RE.test(values.email)) {
+    return ["Please enter a valid email address, like name@university.edu.", emailInput];
+  }
+  if (!values.pdb_id) return ["Please enter a PDB ID, for example 4HHB.", pdbInput];
+  return null;
 }
 
 function updateUrl(values) {
@@ -150,17 +176,21 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const values = formValues();
   showError("");
-  if (!values.pdb_id) {
-    showError("Please enter a PDB ID, for example 4HHB.");
-    pdbInput.focus();
+  const problem = formProblem(values);
+  if (problem) {
+    showError(problem[0]);
+    problem[1].focus();
     return;
   }
   stopPolling();
   setBusy(true);
   setStatus("Sending request…");
   $("actions").hidden = true;
-  writeStored(Object.fromEntries(Object.entries(values).filter(([k]) => k !== "pdb_id")));
-  updateUrl(values);
+  const options = {};
+  for (const name of [...SELECTS, ...CHECKS]) options[name] = values[name];
+  writeStored(options);
+  writeStored({ name: values.name, email: values.email }, VISITOR_KEY);
+  updateUrl(values);  // shareable link: options only, never name or email
 
   let job;
   try {

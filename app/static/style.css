@@ -81,7 +81,9 @@ a { color: var(--accent); }
 
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
 
-input[type="text"], select {
+.note { color: var(--muted); font-size: 0.8rem; margin: 2px 0 0; }
+
+input[type="text"], input[type="email"], select {
   width: 100%;
   font: inherit;
   color: var(--text);

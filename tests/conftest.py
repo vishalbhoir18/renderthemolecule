@@ -6,6 +6,7 @@ import pytest
 from PIL import Image
 
 from app.config import Settings
+from app.errors import UserError
 
 
 def _tiny_png() -> bytes:
@@ -46,3 +47,8 @@ class FakeRenderer:
 @pytest.fixture
 def fake_renderer() -> FakeRenderer:
     return FakeRenderer()
+
+
+@pytest.fixture
+def user_error_cls():
+    return UserError
