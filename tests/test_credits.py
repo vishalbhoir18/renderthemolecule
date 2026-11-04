@@ -13,23 +13,27 @@ def test_citation_texts():
         assert part in legend
 
     refs = about.references("4hhb", "https://me-rtm.hf.space", VERSIONS)
-    assert refs[0].startswith("Bhoir, V. (2026). Render the Molecule (Version 0.1.0) [Web application]. https://me-rtm.hf.space")
+    assert refs[0] == (
+        "Bhoir, V. (2026). Render the Molecule (Version 0.1.0) [Web application]. Zenodo. "
+        "https://doi.org/10.5281/zenodo.23960655 (web application: https://me-rtm.hf.space)"
+    )
     assert refs[1].endswith("Zenodo. https://doi.org/10.5281/zenodo.22827864")
     assert "Version 520.2.0" in refs[1]
     assert "Version 5.2.2" in refs[2]
     assert "10.1093/nar/28.1.235" in refs[3]
     assert refs[4].endswith("https://www.rcsb.org/structure/4HHB")
-    assert about.references("4hhb", "", VERSIONS)[0].endswith(about.REPO_URL)
+    # Inside the image metadata there is no site address: the DOI alone.
+    assert about.references("4hhb", "", VERSIONS)[0].endswith("Zenodo. https://doi.org/10.5281/zenodo.23960655")
 
     assert about.credit_line("1ema") == "PDB 1EMA · Molecular Nodes · Render the Molecule by Vishal Bhoir"
-
-
-def test_app_doi_is_used_once_set(monkeypatch):
-    monkeypatch.setattr(about, "APP_DOI", "10.5281/zenodo.1234567")
-    ref = about.references("4hhb", "https://me-rtm.hf.space", VERSIONS)[0]
-    assert ref.endswith("[Web application]. Zenodo. https://doi.org/10.5281/zenodo.1234567 "
-                        "(web application: https://me-rtm.hf.space)")
     assert about.rcsb_url("pdb_00004hhb") == "https://www.rcsb.org/structure/4HHB"
+
+
+def test_reference_without_a_doi(monkeypatch):
+    monkeypatch.setattr(about, "APP_DOI", "")
+    refs = about.references("4hhb", "https://me-rtm.hf.space", VERSIONS)
+    assert refs[0].endswith("[Web application]. https://me-rtm.hf.space (source code: " + about.REPO_URL + ")")
+    assert about.references("4hhb", "", VERSIONS)[0].endswith(about.REPO_URL)
 
 
 def raw_render(tmp_path, size=(1280, 720)):
