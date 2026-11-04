@@ -8,3 +8,5 @@ google-sheet
 modal_app.py
 **/__pycache__
 *.pyc
+docs
+notebooks
