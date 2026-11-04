@@ -1,0 +1,5 @@
+{
+  "_help": "Lets the Colab notebook add rows to the site owner's Google Sheet. url = the Apps Script Web app URL (ends in /exec); key = COLAB_TOKEN from google-sheet/Code.gs (a public key, not the website's TOKEN). Leave both empty to turn recording off. See README, 'Record who rendered what'.",
+  "url": "",
+  "key": ""
+}

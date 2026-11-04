@@ -16,6 +16,14 @@ AUTHOR_APA = "Bhoir, V."
 AUTHOR_ORCID = "https://orcid.org/0009-0004-8803-1967"
 LICENSE = "GPL-3.0-or-later"
 REPO_URL = "https://github.com/vishalbhoir18/renderthemolecule"
+AUTHOR_URL = "https://linktr.ee/thebioway"
+# Where the tool can be used.
+SITE_URL = "https://vishalbhoir18--render-the-molecule.us-east.modal.run"  # web app (Modal)
+PAGES_URL = "https://vishalbhoir18.github.io/renderthemolecule/"  # landing page (docs/)
+COLAB_URL = (
+    "https://colab.research.google.com/github/vishalbhoir18/renderthemolecule/"
+    "blob/main/notebooks/render_the_molecule.ipynb"
+)
 YEAR = "2026"
 # DOI of this tool once archived on Zenodo (e.g. "10.5281/zenodo.1234567"); see README.
 APP_DOI = "10.5281/zenodo.23960655"  # Zenodo record of release v0.1.0

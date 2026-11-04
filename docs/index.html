@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Render the Molecule</title>
+  <meta name="description" content="Publication-quality images of any Protein Data Bank entry, rendered with Blender and Molecular Nodes. Use it in your browser or in Google Colab.">
+  <meta name="author" content="Vishal Bhoir">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='10' cy='11' r='6' fill='%230f766e'/%3E%3Ccircle cx='22' cy='21' r='7' fill='%2314b8a6'/%3E%3Ccircle cx='23' cy='8' r='4' fill='%235eead4'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: #f7f8fa; --card: #ffffff; --text: #14202b; --muted: #5d6874; --line: #e1e5ea;
+      --accent: #0f766e; --accent-hover: #115e59; --on-accent: #ffffff; --glow: rgba(20, 184, 166, 0.14);
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0c1116; --card: #141b22; --text: #e7ecf1; --muted: #97a2ad; --line: #26303a;
+        --accent: #2dd4bf; --accent-hover: #5eead4; --on-accent: #052b26; --glow: rgba(45, 212, 191, 0.10);
+        color-scheme: dark;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; color: var(--text);
+      background: radial-gradient(1100px 520px at 50% -120px, var(--glow), transparent 70%), var(--bg);
+      font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    a { color: var(--accent); }
+    .wrap { max-width: 980px; margin: 0 auto; padding-inline: 16px; }
+
+    header { text-align: center; padding-block: 72px 20px; }
+    h1 { margin: 0; font-size: clamp(2.1rem, 6vw, 3.4rem); line-height: 1.1; letter-spacing: -0.03em; font-weight: 750; }
+    .byline { margin: 10px 0 0; font-size: 1.1rem; color: var(--muted); }
+    .byline a { font-weight: 600; text-decoration: none; }
+    .byline a:hover { text-decoration: underline; }
+    .tagline { margin: 18px auto 0; max-width: 34em; font-size: 1.15rem; color: var(--muted); }
+    .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 30px; }
+    .button {
+      display: inline-block; padding: 13px 24px; border-radius: 999px; font-weight: 600; text-decoration: none;
+      border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent);
+    }
+    .button:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .button.ghost { background: transparent; color: var(--text); border-color: var(--line); }
+    .button.ghost:hover { border-color: var(--accent); }
+    .note { margin: 14px 0 0; font-size: 0.9rem; color: var(--muted); }
+
+    /* Renders have transparent backgrounds, so molecules sit on the page in both themes. */
+    .hero img { display: block; width: 100%; max-width: 620px; height: auto; margin: 0 auto; }
+    .strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 8px; }
+    .strip img { display: block; width: 100%; height: auto; background: var(--card);
+      border: 1px solid var(--line); border-radius: 16px; }
+    @media (max-width: 640px) {
+      header { padding-top: 48px; }
+      .strip { gap: 8px; }
+      .strip img { aspect-ratio: 1; object-fit: cover; border-radius: 12px; }
+    }
+
+    .cite { text-align: center; padding-block: 64px 8px; }
+    .cite h2 { margin: 0 0 10px; font-size: 1rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .cite p { margin: 0 auto; max-width: 40em; overflow-wrap: anywhere; }
+    .cite .small { margin-top: 8px; font-size: 0.9rem; color: var(--muted); }
+
+    footer { text-align: center; color: var(--muted); font-size: 0.9rem; padding-block: 48px 64px; }
+    footer p { margin: 0 0 6px; }
+    footer .credit { color: var(--text); }
+  </style>
+</head>
+<body>
+  <header class="wrap">
+    <h1>Render the Molecule</h1>
+    <p class="byline">by <a href="https://linktr.ee/thebioway" target="_blank" rel="noopener">Vishal Bhoir</a></p>
+    <p class="tagline">Type a Protein Data Bank ID and get a publication-quality image, rendered with Blender and Molecular Nodes.</p>
+    <div class="actions">
+      <a class="button" href="https://vishalbhoir18--render-the-molecule.us-east.modal.run" target="_blank" rel="noopener">Open the web app</a>
+      <a class="button ghost" href="https://colab.research.google.com/github/vishalbhoir18/renderthemolecule/blob/main/notebooks/render_the_molecule.ipynb" target="_blank" rel="noopener">Open in Google Colab</a>
+    </div>
+    <p class="note">Web app: nothing to install. Colab: free, on your own Google session.</p>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <img src="images/capsid-assembly.webp" width="900" height="900"
+           alt="Render of a whole virus capsid, the 60-copy biological assembly of PDB entry 1CD3">
+    </section>
+    <section class="strip" aria-label="More examples">
+      <img src="images/surface-goodsell.webp" width="960" height="540" loading="lazy" alt="PDB 1F2N as a surface with Goodsell colours">
+      <img src="images/cartoon-secondary-structure.webp" width="960" height="540" loading="lazy" alt="PDB 1F2N as a cartoon coloured by secondary structure">
+      <img src="images/cartoon-rainbow.webp" width="960" height="540" loading="lazy" alt="PDB 4OZS as a rainbow cartoon">
+    </section>
+
+    <section class="cite" aria-labelledby="cite-title">
+      <h2 id="cite-title">Cite</h2>
+      <p>Bhoir, V. (2026). <i>Render the Molecule</i> (Version 0.1.0). Zenodo.
+        <a href="https://doi.org/10.5281/zenodo.23960655" target="_blank" rel="noopener">https://doi.org/10.5281/zenodo.23960655</a></p>
+      <p class="small">Every image comes with its full citation text, including Molecular Nodes and the PDB entry.</p>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <p class="credit">
+      Render the Molecule App developed by <a href="https://linktr.ee/thebioway" target="_blank" rel="noopener">Vishal Bhoir</a>
+      (<a href="https://doi.org/10.5281/zenodo.23960655" target="_blank" rel="noopener">https://doi.org/10.5281/zenodo.23960655</a>)
+    </p>
+    <p>
+      Images are rendered with <a href="https://github.com/BradyAJohnston/MolecularNodes" target="_blank" rel="noopener">Molecular Nodes</a>
+      by Brady Johnston and contributors, and <a href="https://www.blender.org" target="_blank" rel="noopener">Blender</a>.
+      Structures come from the <a href="https://www.rcsb.org" target="_blank" rel="noopener">RCSB Protein Data Bank</a>.
+    </p>
+  </footer>
+</body>
+</html>
