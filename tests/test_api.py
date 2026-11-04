@@ -52,8 +52,8 @@ def test_index_and_options(client):
     page = client.get("/")
     assert page.status_code == 200 and "Render the Molecule" in page.text
     assert 'id="email"' in page.text and 'id="name"' in page.text
-    assert "developed by <strong>Vishal Bhoir</strong>" in page.text
-    assert "https://orcid.org/0009-0004-8803-1967" in page.text and "GNU GPL v3" in page.text
+    assert 'Render the Molecule <span class="byline">by <a href="https://linktr.ee/thebioway"' in page.text
+    assert 'Render the Molecule App developed by <a href="https://linktr.ee/thebioway"' in page.text
     assert client.get("/static/app.js").status_code == 200
     opts = client.get("/api/options").json()
     assert {c["value"] for c in opts["choices"]["style"]} >= {"cartoon", "surface"}
