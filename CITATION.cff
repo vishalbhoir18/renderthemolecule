@@ -10,6 +10,7 @@ authors:
     given-names: Vishal
     orcid: "https://orcid.org/0009-0004-8803-1967"
 version: 0.1.0
+doi: 10.5281/zenodo.23960655
 date-released: "2026-11-04"
 license: GPL-3.0-or-later
 repository-code: "https://github.com/vishalbhoir18/renderthemolecule"

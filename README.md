@@ -12,6 +12,8 @@ short_description: Publication-quality images from a PDB ID (Blender + Molecular
 
 # Render the Molecule
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23960655.svg)](https://doi.org/10.5281/zenodo.23960655)
+
 Type a Protein Data Bank ID (for example `4HHB`) and get a publication-quality
 image back, rendered by [Blender](https://www.blender.org) with the
 [Molecular Nodes](https://github.com/BradyAJohnston/MolecularNodes) add-on.
@@ -271,7 +273,7 @@ PDB entry 4HHB it reads:
 
 References (APA 7th):
 
-1. Bhoir, V. (2026). *Render the Molecule* (Version 0.1.0) [Web application]. https://github.com/vishalbhoir18/renderthemolecule
+1. Bhoir, V. (2026). *Render the Molecule* (Version 0.1.0) [Web application]. Zenodo. https://doi.org/10.5281/zenodo.23960655
 2. Johnston, B., & Molecular Nodes contributors. (2026). *Molecular Nodes* (Version 520.2.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.22827864
 3. Blender Online Community. (2026). *Blender* (Version 5.2.2) [Computer software]. Blender Foundation. https://www.blender.org
 4. Berman, H. M., Westbrook, J., Feng, Z., Gilliland, G., Bhat, T. N., Weissig, H., Shindyalov, I. N., & Bourne, P. E. (2000). The Protein Data Bank. *Nucleic Acids Research, 28*(1), 235–242. https://doi.org/10.1093/nar/28.1.235
@@ -281,14 +283,10 @@ Molecular Nodes has no paper yet; its authors ask to be cited through its Zenodo
 The page's own box uses the address of the live site in reference 1. GitHub's **"Cite this
 repository"** button (from `CITATION.cff`) gives the same reference in APA and BibTeX.
 
-**Giving this tool its own DOI.** Archive a release on [Zenodo](https://zenodo.org):
-
-1. Sign in to Zenodo with your GitHub account, open **Settings → GitHub**, and switch on
-   `vishalbhoir18/renderthemolecule` (the repository must be public).
-2. On GitHub, create a release (for example tag `v0.1.0`). Zenodo archives it within a few
-   minutes and issues two DOIs: one for this version and a *concept* DOI for all versions.
-3. Put the DOI in `APP_DOI` in `app/about.py` and as `doi:` in `CITATION.cff`, and add the
-   Zenodo DOI badge to this README. Every citation box and image then shows it.
+**DOI.** Release v0.1.0 is archived on Zenodo as https://doi.org/10.5281/zenodo.23960655. Zenodo archives
+every new GitHub release automatically and gives it its own DOI; after a release, put the
+new DOI in `APP_DOI` in `app/about.py` and as `doi:` in `CITATION.cff`, and bump
+`APP_VERSION` in `app/about.py` and `version:` in `CITATION.cff` to match.
 
 When a paper about the tool is published, cite the paper instead and keep the Zenodo DOI for
 the exact software version.

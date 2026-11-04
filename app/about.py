@@ -18,7 +18,7 @@ LICENSE = "GPL-3.0-or-later"
 REPO_URL = "https://github.com/vishalbhoir18/renderthemolecule"
 YEAR = "2026"
 # DOI of this tool once archived on Zenodo (e.g. "10.5281/zenodo.1234567"); see README.
-APP_DOI = ""
+APP_DOI = "10.5281/zenodo.23960655"  # Zenodo record of release v0.1.0
 
 # Molecular Nodes has no paper yet; its README asks to be cited via Zenodo.
 MN_DOI = "10.5281/zenodo.22827864"

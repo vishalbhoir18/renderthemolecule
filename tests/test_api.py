@@ -155,7 +155,9 @@ def test_cite_endpoint_uses_the_site_address(client):
                                                                        "x-forwarded-proto": "https"}).json()
     assert body["credit"].startswith("PDB 1EMA")
     assert "PDB entry 1EMA" in body["legend"]
-    assert "https://me-rtm.hf.space (source code: https://github.com/" in body["references"][0]
+    assert body["references"][0].endswith(
+        "Zenodo. https://doi.org/10.5281/zenodo.23960655 (web application: https://me-rtm.hf.space)"
+    )
     assert len(body["references"]) == 5
     assert client.get("/api/cite", params={"pdb_id": "nope"}).status_code == 422
 

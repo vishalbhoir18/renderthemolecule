@@ -15,7 +15,7 @@ from urllib.parse import urlencode
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # Bump when the look of renders changes, so cached images are not reused.
-RENDER_VERSION = "2"  # 2: credit line and PNG metadata
+RENDER_VERSION = "3"  # 2: credit line and PNG metadata; 3: DOI in metadata
 
 # Classic IDs (4HHB) and the extended wwPDB format (pdb_00004hhb).
 PDB_ID_RE = re.compile(r"^(?:[1-9][a-z0-9]{3}|pdb_[0-9a-z]{8})$")
