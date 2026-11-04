@@ -15,10 +15,11 @@ AUTHOR = "Vishal Bhoir"
 AUTHOR_APA = "Bhoir, V."
 REPO_URL = "https://github.com/vishalbhoir18/renderthemolecule"
 YEAR = "2026"
+# DOI of this tool once archived on Zenodo (e.g. "10.5281/zenodo.1234567"); see README.
+APP_DOI = ""
 
-# Molecular Nodes has no paper yet; its README asks for the Zenodo record.
-# This link always resolves to the DOI of the latest release.
-MN_ZENODO_URL = "https://zenodo.org/badge/latestdoi/485261976"
+# Molecular Nodes has no paper yet; its README asks to be cited via Zenodo.
+MN_DOI = "10.5281/zenodo.22827864"
 PDB_REFERENCE = (
     "Berman, H. M., Westbrook, J., Feng, Z., Gilliland, G., Bhat, T. N., Weissig, H., "
     "Shindyalov, I. N., & Bourne, P. E. (2000). The Protein Data Bank. "
@@ -73,11 +74,16 @@ def references(pdb_id: str, site_url: str = "", v: dict[str, str] | None = None)
     """APA 7 reference list entries for an image of ``pdb_id``."""
     v = v or versions()
     code = display_id(pdb_id)
-    where = f"{site_url} (source code: {REPO_URL})" if site_url else REPO_URL
+    if APP_DOI:
+        where = f"Zenodo. https://doi.org/{APP_DOI}"
+        if site_url:
+            where += f" (web application: {site_url})"
+    else:
+        where = f"{site_url} (source code: {REPO_URL})" if site_url else REPO_URL
     return [
         f"{AUTHOR_APA} ({YEAR}). {APP_NAME} (Version {v['app']}) [Web application]. {where}",
         f"Johnston, B., & Molecular Nodes contributors. ({YEAR}). Molecular Nodes "
-        f"(Version {v['molecularnodes']}) [Computer software]. Zenodo. {MN_ZENODO_URL}",
+        f"(Version {v['molecularnodes']}) [Computer software]. Zenodo. https://doi.org/{MN_DOI}",
         f"Blender Online Community. ({YEAR}). Blender (Version {v['blender']}) "
         f"[Computer software]. Blender Foundation. https://www.blender.org",
         PDB_REFERENCE,

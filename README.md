@@ -221,15 +221,26 @@ PDB entry 4HHB it reads:
 References (APA 7th):
 
 1. Bhoir, V. (2026). *Render the Molecule* (Version 0.1.0) [Web application]. https://github.com/vishalbhoir18/renderthemolecule
-2. Johnston, B., & Molecular Nodes contributors. (2026). *Molecular Nodes* (Version 520.2.0) [Computer software]. Zenodo. https://zenodo.org/badge/latestdoi/485261976
+2. Johnston, B., & Molecular Nodes contributors. (2026). *Molecular Nodes* (Version 520.2.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.22827864
 3. Blender Online Community. (2026). *Blender* (Version 5.2.2) [Computer software]. Blender Foundation. https://www.blender.org
 4. Berman, H. M., Westbrook, J., Feng, Z., Gilliland, G., Bhat, T. N., Weissig, H., Shindyalov, I. N., & Bourne, P. E. (2000). The Protein Data Bank. *Nucleic Acids Research, 28*(1), 235–242. https://doi.org/10.1093/nar/28.1.235
 5. The primary publication of the PDB entry, listed on its RCSB page (e.g. https://www.rcsb.org/structure/4HHB).
 
-Molecular Nodes has no paper yet; its authors ask to be cited through the Zenodo record above.
+Molecular Nodes has no paper yet; its authors ask to be cited through its Zenodo record.
 The page's own box uses the address of the live site in reference 1. GitHub's **"Cite this
-repository"** button (from `CITATION.cff`) gives the same reference in APA and BibTeX. When you
-publish a paper about this tool, add its DOI to `CITATION.cff` and `app/about.py`.
+repository"** button (from `CITATION.cff`) gives the same reference in APA and BibTeX.
+
+**Giving this tool its own DOI.** Archive a release on [Zenodo](https://zenodo.org):
+
+1. Sign in to Zenodo with your GitHub account, open **Settings → GitHub**, and switch on
+   `vishalbhoir18/renderthemolecule` (the repository must be public).
+2. On GitHub, create a release (for example tag `v0.1.0`). Zenodo archives it within a few
+   minutes and issues two DOIs: one for this version and a *concept* DOI for all versions.
+3. Put the DOI in `APP_DOI` in `app/about.py` and as `doi:` in `CITATION.cff`, and add the
+   Zenodo DOI badge to this README. Every citation box and image then shows it.
+
+When a paper about the tool is published, cite the paper instead and keep the Zenodo DOI for
+the exact software version.
 
 ## Licences
 

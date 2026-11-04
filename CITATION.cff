@@ -27,7 +27,7 @@ references:
       - family-names: Johnston
         given-names: Brady
     version: 520.2.0
-    url: "https://zenodo.org/badge/latestdoi/485261976"
+    doi: 10.5281/zenodo.22827864
     repository-code: "https://github.com/BradyAJohnston/MolecularNodes"
   - type: software
     title: Blender
