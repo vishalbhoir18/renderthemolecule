@@ -24,7 +24,8 @@ import modal
 HERE = Path(__file__).resolve().parent
 
 APP_NAME = "render-the-molecule"
-# The site will be at https://<your-modal-username>--render-the-molecule.modal.run
+# The site will be at https://<modal-username>--render-the-molecule.<region>.modal.run
+# (shown at the end of `modal deploy`), e.g. vishalbhoir18--render-the-molecule.us-east.modal.run
 URL_LABEL = "render-the-molecule"
 
 # Resources. Modal counts physical CPU cores, each with 2 hardware threads.

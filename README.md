@@ -83,7 +83,7 @@ instead of billing you, and the site comes back with next month's credits.
    * **Variables** tab: add `MODAL_DEPLOY` with the value `true`.
 4. Open the **Actions** tab → **CI** → **Run workflow**, choose the branch, and run it. When the
    *deploy-modal* job finishes (the first build takes several minutes), its log shows the
-   address, of the form `https://<your-modal-username>--render-the-molecule.modal.run`.
+   address, for example `https://vishalbhoir18--render-the-molecule.us-east.modal.run`.
 
 After that, every push to `main` redeploys automatically. Run the workflow again whenever
 you change the Sheet secrets.
