@@ -1,8 +1,8 @@
 """In-process job queue: one worker thread renders one job at a time.
 
-A free Hugging Face Space is a single container, so there is no Redis/Celery:
-the queue lives in memory. If the Space restarts, queued jobs are lost (the
-page tells the visitor to resubmit) but finished images on disk are reused.
+The app runs as a single container (on Modal or any Docker host), so there is
+no Redis/Celery: the queue lives in memory. If the container restarts, queued
+jobs are lost (the page tells the visitor to resubmit).
 """
 
 from __future__ import annotations

@@ -35,7 +35,33 @@ jobs:
           for i in $(seq 1 30); do curl -fsS localhost:7860/healthz && exit 0; sleep 2; done
           docker logs rtm; exit 1
 
-  # Optional: deploy to a Hugging Face Space on every push to main.
+  # Deploy to Modal (see README, "Deploy on Modal"). Runs when started by hand
+  # (Actions → CI → Run workflow) or on pushes to main, once the repository
+  # variable MODAL_DEPLOY is "true" and secrets MODAL_TOKEN_ID / MODAL_TOKEN_SECRET
+  # are set. SHEET_WEBHOOK_URL / SHEET_TOKEN secrets, if set, turn on the Sheet record.
+  deploy-modal:
+    needs: [tests, docker]
+    if: >-
+      vars.MODAL_DEPLOY == 'true' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'push' && github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install modal==1.6.3
+      - name: Deploy
+        env:
+          MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+          MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+          SHEET_WEBHOOK_URL: ${{ secrets.SHEET_WEBHOOK_URL }}
+          SHEET_TOKEN: ${{ secrets.SHEET_TOKEN }}
+          PUBLIC_URL: ${{ vars.PUBLIC_URL }}
+        run: modal deploy modal_app.py
+
+  # Optional: deploy to a Hugging Face Space (needs a PRO account) on every push to main.
   # Set repository variable HF_SPACE (e.g. yourname/renderthemolecule) and
   # repository secret HF_TOKEN (a Hugging Face token with write access).
   deploy:

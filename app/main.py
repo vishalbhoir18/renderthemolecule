@@ -49,8 +49,11 @@ def _client_id(request: Request) -> str:
 def _base_url(request: Request, settings: Settings) -> str:
     if settings.public_url:
         return settings.public_url
-    proto = request.headers.get("x-forwarded-proto", request.url.scheme)
     host = request.headers.get("host", request.url.netloc)
+    proto = request.headers.get("x-forwarded-proto")
+    if not proto:
+        # Modal serves only over HTTPS, even if its proxy does not say so.
+        proto = "https" if host.endswith(".modal.run") else request.url.scheme
     return f"{proto}://{host}"
 
 

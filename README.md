@@ -49,19 +49,73 @@ Browser ──▶ FastAPI (app/main.py)
   machine it was slower than Cycles at 32 samples with the CPU denoiser (29 s vs 20 s).
 * **One process per render.** Blender keeps global state and can crash; a fresh process per job
   keeps the web server alive and returns all memory after every render.
-* **No Redis/Celery.** A free Hugging Face Space is a single container, so the queue lives in
+* **No Redis/Celery.** The app runs as a single container (on Modal or any Docker host), so the queue lives in
   memory. One worker is right anyway: Cycles already uses every CPU core.
 * **Content-addressed cache.** Each image is named by a hash of its options, so a repeated
   request (or a shared link) is served instantly.
 
 Measured on a 4-vCPU machine at 1280 × 720: 15–23 s per image at *Standard* quality and about
-9 s at *Draft*, plus 3–4 s of scene setup. The free Hugging Face tier has 2 vCPUs, so expect
-those times to roughly double there.
+9 s at *Draft*, plus 3–4 s of scene setup. With 2 threads, the same renders took 45–140 s.
 
-## Deploy free on Hugging Face Spaces
+## Deploy on Modal
 
-1. Create a free account at <https://huggingface.co> and click **New Space**.
-   Choose **Docker** → **Blank**, hardware **CPU basic (free)**, then create it.
+[Modal](https://modal.com) runs the app in a container that starts when someone visits and
+stops 5 minutes after the last request, so you use credits only while the site is in use.
+`modal_app.py` describes the deployment: the same base image, libraries and pinned packages
+as the `Dockerfile` (which CI builds and tests), 2 CPU cores, 8 GB memory, and a single
+container (the job queue lives in its memory).
+
+**Cost.** A new account gets **$1** of credit without a card; adding a card unlocks
+**$30 per month**. By my estimate from Modal's published rates, the container costs about
+$0.16 per hour while it is running, so a visit costs about 1–2 cents. Credits run out at
+roughly 6 hours of use on the $1, or about 190 hours a month on the $30 (estimates, not
+measurements). **To never be charged**, open **Usage & Billing** in Modal and set a
+**spend limit** as low as it allows (ideally $0): when credits run out, Modal stops the app
+instead of billing you, and the site comes back with next month's credits.
+
+**Deploy from GitHub (no software on your computer):**
+
+1. Sign up at <https://modal.com> (choose *Personal*, *Other*, *Get started*).
+2. In Modal, open **Settings → API Tokens → New Token** and copy the token ID and secret.
+3. In this GitHub repository, open **Settings → Secrets and variables → Actions**:
+   * **Secrets** tab: add `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET`. If you have set up the
+     Google Sheet (next section), also add `SHEET_WEBHOOK_URL` and `SHEET_TOKEN`.
+   * **Variables** tab: add `MODAL_DEPLOY` with the value `true`.
+4. Open the **Actions** tab → **CI** → **Run workflow**, choose the branch, and run it. When the
+   *deploy-modal* job finishes (the first build takes several minutes), its log shows the
+   address, of the form `https://<your-modal-username>--render-the-molecule.modal.run`.
+
+After that, every push to `main` redeploys automatically. Run the workflow again whenever
+you change the Sheet secrets.
+
+**Or deploy from your computer** (Python 3.10 or newer):
+
+```bash
+pip install "modal==1.6.3"
+```
+
+```bash
+modal setup
+```
+
+```bash
+modal deploy modal_app.py
+```
+
+To turn on the Sheet record this way, set `SHEET_WEBHOOK_URL` and `SHEET_TOKEN` in your
+terminal before `modal deploy`; they are passed to the app as a Modal secret.
+
+**Things to know.** The first visitor after a quiet period waits for the container to start
+(usually under a minute). Images are kept only while the container is up; afterwards the
+same request simply renders again. The **Apps** page in Modal shows the app, its logs and
+its cost so far; **Stop app** takes the site offline.
+
+## Alternative: Hugging Face Spaces (needs PRO)
+
+Since July 2026, Docker Spaces need a Hugging Face **PRO** account (about $9 a month); free
+accounts can create only static Spaces. With PRO:
+
+1. Click **New Space**, choose **Docker** → **Blank** and hardware **CPU basic**.
 2. Create an access token with **write** permission (Settings → Access Tokens).
 3. Push this repository to the Space; use the token as the password when asked:
 
@@ -73,16 +127,10 @@ those times to roughly double there.
    git push space main
    ```
 
-The Space builds the Docker image (a few minutes the first time) and then serves the app at
-`https://<your-username>-<space-name>.hf.space`.
-
-**Automatic deploys from GitHub (optional).** In the GitHub repository settings, add a
-secret `HF_TOKEN` (the token above) and a variable `HF_SPACE` (`<your-username>/<space-name>`).
-After that, every push to `main` that passes CI is deployed by `.github/workflows/ci.yml`.
-
-Things to know about the free tier: the Space sleeps after 48 hours without visitors and the
-next visitor wakes it (the first load then takes a minute or two); its disk is wiped on
-restart, so the image cache starts empty again; the CPUs are shared.
+The app is then at `https://<your-username>-<space-name>.hf.space`. For automatic deploys,
+add a GitHub secret `HF_TOKEN` and variable `HF_SPACE` (`<your-username>/<space-name>`);
+pushes to `main` that pass CI are then deployed. For the Sheet record, add
+`SHEET_WEBHOOK_URL` and `SHEET_TOKEN` as **secrets** in the Space settings.
 
 ## Record who rendered what in a Google Sheet
 
@@ -110,10 +158,10 @@ Set it up once, in about 10 minutes:
    for every personal script, and the script only touches this one Sheet.
 5. Copy the **Web app URL** (it ends in `/exec`). To check it, open it in a browser: it
    should say *"Render the Molecule recorder is running"*.
-6. In your Hugging Face Space, open **Settings → Variables and secrets** and add two
-   **secrets**: `SHEET_WEBHOOK_URL` = the Web app URL, and `SHEET_TOKEN` = the same
-   password as in step 2. The Space restarts. A "Renders" tab with a header row appears in
-   the Sheet after the first render.
+6. Give the app two settings: `SHEET_WEBHOOK_URL` = the Web app URL, and `SHEET_TOKEN` = the
+   same password as in step 2. On Modal, add them as GitHub **secrets** and run the deploy
+   workflow again (see "Deploy on Modal"). A "Renders" tab with a header row appears in the
+   Sheet after the first render.
 
 If you later change the script, use **Deploy → Manage deployments → Edit → Version: New
 version**, or Google keeps serving the old code. If the Sheet cannot be reached, the app

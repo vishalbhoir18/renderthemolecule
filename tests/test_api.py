@@ -142,6 +142,14 @@ def test_public_url_from_proxy_headers(client, recorder):
     assert recorder.rows[0]["link"].startswith("https://me-rtm.hf.space/?id=1BNA")
 
 
+def test_modal_addresses_always_use_https(client, recorder):
+    poll(client, render(client, headers={"host": "vb--render-the-molecule.modal.run"}, pdb_id="1bna").json()["id"])
+    deadline = time.time() + 5
+    while not recorder.rows and time.time() < deadline:
+        time.sleep(0.01)
+    assert recorder.rows[0]["link"].startswith("https://vb--render-the-molecule.modal.run/?id=1BNA")
+
+
 def test_cite_endpoint_uses_the_site_address(client):
     body = client.get("/api/cite", params={"pdb_id": "1EMA"}, headers={"host": "me-rtm.hf.space",
                                                                        "x-forwarded-proto": "https"}).json()
