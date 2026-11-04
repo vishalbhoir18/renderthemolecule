@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Render the Molecule</title>
+  <meta name="description" content="Publication-quality images of any Protein Data Bank entry, rendered with Blender and Molecular Nodes.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='10' cy='11' r='6' fill='%230f766e'/%3E%3Ccircle cx='22' cy='21' r='7' fill='%2314b8a6'/%3E%3Ccircle cx='23' cy='8' r='4' fill='%235eead4'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <h1>Render the Molecule</h1>
+      <p class="tagline">Type a Protein Data Bank ID and get a publication-quality image, rendered with Blender and Molecular Nodes.</p>
+    </div>
+  </header>
+
+  <main class="wrap layout">
+    <form id="render-form" class="panel" novalidate>
+      <div class="field">
+        <label for="pdb_id">PDB ID</label>
+        <input id="pdb_id" name="pdb_id" type="text" inputmode="text" autocomplete="off"
+               autocapitalize="characters" spellcheck="false" maxlength="12"
+               placeholder="e.g. 4HHB" required>
+        <div class="examples" aria-label="Examples">
+          <span>Try:</span>
+          <button type="button" class="chip" data-id="4HHB" title="Hemoglobin">4HHB</button>
+          <button type="button" class="chip" data-id="1EMA" title="Green fluorescent protein">1EMA</button>
+          <button type="button" class="chip" data-id="1BNA" title="B-DNA dodecamer">1BNA</button>
+          <button type="button" class="chip" data-id="6VXX" title="SARS-CoV-2 spike glycoprotein">6VXX</button>
+          <button type="button" class="chip" data-id="1AON" title="GroEL–GroES chaperonin">1AON</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="style">Style</label>
+        <select id="style" name="style"></select>
+      </div>
+
+      <div class="field">
+        <label for="color">Colour</label>
+        <select id="color" name="color"></select>
+      </div>
+
+      <div class="field">
+        <label for="material">Material</label>
+        <select id="material" name="material"></select>
+      </div>
+
+      <details class="more">
+        <summary>More options</summary>
+        <div class="grid-2">
+          <div class="field">
+            <label for="viewpoint">View</label>
+            <select id="viewpoint" name="viewpoint"></select>
+          </div>
+          <div class="field">
+            <label for="background">Background</label>
+            <select id="background" name="background"></select>
+          </div>
+          <div class="field">
+            <label for="resolution">Size</label>
+            <select id="resolution" name="resolution"></select>
+          </div>
+          <div class="field">
+            <label for="quality">Quality</label>
+            <select id="quality" name="quality"></select>
+          </div>
+        </div>
+        <label class="check">
+          <input type="checkbox" id="ligands" name="ligands">
+          <span>Show ligands and ions as ball-and-stick <small>(Cartoon and Ribbon)</small></span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="assembly" name="assembly">
+          <span>Biological assembly <small>(full complex, e.g. a whole virus capsid)</small></span>
+        </label>
+      </details>
+
+      <button id="submit" type="submit" class="primary">Render image</button>
+      <p class="hint">Runs on a free CPU server: a render usually takes 20–60 seconds. Repeat requests are instant.</p>
+    </form>
+
+    <section class="panel result" aria-labelledby="result-title">
+      <h2 id="result-title" class="visually-hidden">Result</h2>
+      <div id="status" class="status" role="status" aria-live="polite" hidden>
+        <span class="spinner" aria-hidden="true"></span>
+        <span id="status-text"></span>
+      </div>
+      <div id="error" class="error" role="alert" hidden></div>
+      <figure id="figure" class="figure">
+        <div id="placeholder" class="placeholder">
+          <svg viewBox="0 0 120 80" aria-hidden="true">
+            <circle cx="40" cy="38" r="16"/><circle cx="72" cy="30" r="11"/><circle cx="78" cy="56" r="13"/>
+            <line x1="40" y1="38" x2="72" y2="30"/><line x1="72" y1="30" x2="78" y2="56"/>
+          </svg>
+          <p>Your image will appear here.</p>
+        </div>
+        <img id="image" alt="" hidden>
+      </figure>
+      <div id="actions" class="actions" hidden>
+        <a id="download" class="button primary" href="#" download>Download PNG</a>
+        <a id="rcsb" class="button" href="#" target="_blank" rel="noopener">View entry on RCSB PDB</a>
+        <span id="meta" class="meta"></span>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap site-footer">
+    <p>
+      Rendered with <a href="https://www.blender.org" target="_blank" rel="noopener">Blender</a> and
+      <a href="https://github.com/BradyAJohnston/MolecularNodes" target="_blank" rel="noopener">Molecular Nodes</a>.
+      Structures from the <a href="https://www.rcsb.org" target="_blank" rel="noopener">RCSB Protein Data Bank</a>.
+      If you publish an image, please cite Molecular Nodes and the PDB entry.
+    </p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: System libraries for Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libegl-mesa0 libgl1 libgl1-mesa-dri libgomp1 \
+            libsm6 libx11-6 libxext6 libxfixes3 libxi6 libxkbcommon0 libxrender1 libxxf86vm1
+      - run: pip install -r requirements-dev.txt
+      # Includes a real Blender render of PDB 1CRN downloaded from RCSB.
+      - run: pytest -v
+
+  docker:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t renderthemolecule .
+      - name: Container starts and answers
+        run: |
+          docker run -d --name rtm -p 7860:7860 renderthemolecule
+          for i in $(seq 1 30); do curl -fsS localhost:7860/healthz && exit 0; sleep 2; done
+          docker logs rtm; exit 1
+
+  # Optional: deploy to a Hugging Face Space on every push to main.
+  # Set repository variable HF_SPACE (e.g. yourname/renderthemolecule) and
+  # repository secret HF_TOKEN (a Hugging Face token with write access).
+  deploy:
+    needs: [tests, docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.HF_SPACE != ''
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Push to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: git push --force "https://${HF_SPACE%%/*}:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE}" HEAD:main

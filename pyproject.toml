@@ -1,0 +1,11 @@
+[project]
+name = "renderthemolecule"
+version = "0.1.0"
+description = "Web app: PDB ID in, Blender + Molecular Nodes image out."
+requires-python = "==3.13.*"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-p no:cacheprovider"
+filterwarnings = ["ignore::DeprecationWarning", "ignore::FutureWarning"]
