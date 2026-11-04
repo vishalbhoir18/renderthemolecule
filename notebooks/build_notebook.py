@@ -90,14 +90,20 @@ if not os.path.exists(INSTALLED):
     print("Installing Blender and Molecular Nodes (about 1–2 minutes)…")
     sh("apt-get -qq update > /dev/null && apt-get -qq install -y --no-install-recommends "
        "{packages} > /dev/null")
-    if not os.path.exists(REPO_DIR):
-        sh(f"git clone -q --depth 1 {{REPO_URL}} {{REPO_DIR}}")
     sh("pip -q install uv")
     sh(f"uv venv -q --python 3.13 {{VENV}}")
-    sh(f"uv pip install -q --python {{PYTHON}} -r {{REPO_DIR}}/requirements.txt")
-    open(INSTALLED, "w").close()
-sys.path.insert(0, REPO_DIR)
+# Always use the latest version of the code (fixes reach open sessions too).
+if os.path.exists(REPO_DIR):
+    sh(f"git -C {{REPO_DIR}} fetch -q --depth 1 origin main && git -C {{REPO_DIR}} reset -q --hard FETCH_HEAD")
+else:
+    sh(f"git clone -q --depth 1 {{REPO_URL}} {{REPO_DIR}}")
+sh(f"uv pip install -q --python {{PYTHON}} -r {{REPO_DIR}}/requirements.txt")  # quick when up to date
+open(INSTALLED, "w").close()
+if REPO_DIR not in sys.path:
+    sys.path.insert(0, REPO_DIR)
+import importlib
 from app import colab
+colab = importlib.reload(colab)
 print("Ready.")
 '''
 

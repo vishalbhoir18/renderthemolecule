@@ -1,4 +1,5 @@
 import json
+import sys
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -28,6 +29,46 @@ def test_cli_args_carry_every_choice():
     assert pairs["--pdb-id"] == "4hhb" and pairs["--name"] == "Ada" and pairs["--out"] == "/out"
     assert pairs["--style"] == "surface" and pairs["--background"] == "transparent"
     assert "--no-ligands" in args and "--assembly" in args and "--credit" in args
+
+
+FAKE_CLI = '''
+import json, os, sys
+args = sys.argv[1:]
+out = args[args.index("--out") + 1]
+print("Downloading 4HHB…", flush=True)
+if os.environ.get("FAKE_CRASH"):
+    sys.exit(1)
+os.makedirs(out, exist_ok=True)
+json.dump({"ok": True, "env": {k: os.environ.get(k) for k in ("MPLBACKEND", "PYTHONPATH")}},
+          open(os.path.join(out, "result.json"), "w"))
+print("Done.", flush=True)
+'''
+
+
+@pytest.fixture
+def fake_repo(tmp_path):
+    """A stand-in repository whose app.cli just reports what it was given."""
+    (tmp_path / "repo" / "app").mkdir(parents=True)
+    (tmp_path / "repo" / "app" / "__init__.py").write_text("")
+    (tmp_path / "repo" / "app" / "cli.py").write_text(FAKE_CLI)
+    return tmp_path / "repo"
+
+
+def test_render_shows_messages_and_cleans_colabs_settings(fake_repo, tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("MPLBACKEND", "module://matplotlib_inline.backend_inline")
+    monkeypatch.setenv("PYTHONPATH", "/env/python")
+    result = colab.render(FORM, python=sys.executable, repo_dir=str(fake_repo), out_dir=str(tmp_path / "out"))
+    assert result["ok"]
+    assert result["env"] == {"MPLBACKEND": "Agg", "PYTHONPATH": None}
+    shown = capsys.readouterr().out
+    assert "Downloading 4HHB…" in shown and "Done." in shown  # relayed into the notebook
+
+
+def test_render_explains_a_crash(fake_repo, tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("FAKE_CRASH", "1")
+    result = colab.render(FORM, python=sys.executable, repo_dir=str(fake_repo), out_dir=str(tmp_path / "out"))
+    assert not result["ok"] and "exit code 1" in result["error"]
+    assert "Downloading 4HHB…" in capsys.readouterr().out
 
 
 class FakeAppsScript(BaseHTTPRequestHandler):
@@ -80,7 +121,7 @@ def test_record_reports_problems_without_failing(tmp_path, apps_script):
     result = {"ok": True, "row": {"name": "Ada"}}
     FakeAppsScript.reply = {"ok": False, "error": "wrong token"}
     assert colab.record(result, settings_file(tmp_path, apps_script)) == "Usage not recorded (wrong token)."
-    assert colab.record({"ok": False, "error": "bad email"}, "x") == "Usage not recorded (the form was not valid)."
+    assert colab.record({"ok": False, "error": "bad email"}, "x") == "Usage not recorded (no render was attempted)."
     assert colab.record(result, str(tmp_path / "missing.json")) == "Usage not recorded (no recording settings)."
     assert colab.record(result, settings_file(tmp_path, "", "")) == "Usage not recorded (recording is not set up)."
     closed = settings_file(tmp_path, "http://127.0.0.1:9/exec")

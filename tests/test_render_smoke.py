@@ -59,6 +59,15 @@ def test_real_render(settings, structure, tmp_path, options):
         assert colourful_fraction(img) > 0.01
 
 
+def test_renders_with_google_colabs_matplotlib_setting(settings, structure, tmp_path, monkeypatch):
+    # Colab sets this; Biotite imports matplotlib, which crashed on the missing backend.
+    monkeypatch.setenv("MPLBACKEND", "module://matplotlib_inline.backend_inline")
+    request = RenderRequest(pdb_id="1crn", resolution="800x800", quality="draft")
+    out = tmp_path / "out.png"
+    run_blender(request, structure, out, settings)
+    assert out.exists()
+
+
 def test_atom_limit_is_reported_to_user(settings, structure, tmp_path):
     tiny = settings.__class__(data_dir=settings.data_dir, max_atoms_backbone=10)
     request = RenderRequest(pdb_id="1crn", resolution="800x800", quality="draft")

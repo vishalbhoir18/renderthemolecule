@@ -7,6 +7,7 @@ Rendering runs in a separate environment that has Blender (via app.cli).
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import urllib.request
@@ -38,13 +39,33 @@ def cli_args(form: dict, python: str, out_dir: str) -> list[str]:
     return args
 
 
+def renderer_environment() -> dict[str, str]:
+    """Colab's environment, minus what belongs to Colab's own Python.
+
+    Colab sets PYTHONPATH and MPLBACKEND for its notebook; the renderer runs in a
+    separate Python where those point at things that do not exist.
+    """
+    env = {k: v for k, v in os.environ.items() if k not in ("PYTHONPATH", "PYTHONHOME", "PYTHONSTARTUP")}
+    env["MPLBACKEND"] = "Agg"
+    env["PYTHONUNBUFFERED"] = "1"
+    return env
+
+
 def render(form: dict, *, python: str, repo_dir: str, out_dir: str, extra_args: list[str] = ()) -> dict:
-    """Run the renderer; its progress lines appear in the notebook. Returns result.json."""
+    """Run the renderer and show its messages in the notebook. Returns result.json."""
     result_path = Path(out_dir) / "result.json"
     result_path.unlink(missing_ok=True)
-    subprocess.run(cli_args(form, python, out_dir) + list(extra_args), cwd=repo_dir, check=False)
+    # Colab does not show output written directly by child processes, so relay it.
+    proc = subprocess.Popen(
+        cli_args(form, python, out_dir) + list(extra_args), cwd=repo_dir, env=renderer_environment(),
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1,
+    )
+    for line in proc.stdout:
+        print(line.rstrip("\n"), flush=True)
+    proc.wait()
     if not result_path.exists():
-        return {"ok": False, "error": "The renderer stopped unexpectedly; see the messages above."}
+        return {"ok": False, "error": f"The renderer stopped unexpectedly (exit code {proc.returncode}); "
+                                      "see the messages above."}
     return json.loads(result_path.read_text())
 
 
@@ -52,7 +73,7 @@ def record(result: dict, settings_file: str, timeout: float = 30) -> str:
     """Add this render to the site owner's Google Sheet; returns a short status line."""
     row = result.get("row")
     if not row:
-        return "Usage not recorded (the form was not valid)."
+        return "Usage not recorded (no render was attempted)."
     try:
         settings = json.loads(Path(settings_file).read_text())
     except (OSError, ValueError):
