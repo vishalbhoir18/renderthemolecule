@@ -56,11 +56,17 @@ image = (
 
 
 def settings_from_deploy_environment() -> list[modal.Secret]:
-    """Pass the optional settings that are set on the deploying computer."""
-    if not modal.is_local():  # inside the running container: already applied
-        return []
-    values = {key: os.environ[key] for key in DEPLOY_SETTINGS if os.environ.get(key)}
-    return [modal.Secret.from_dict(values)] if values else []
+    """Pass the optional settings that are set on the deploying computer.
+
+    Always returns exactly one Secret: Modal checks that a function has the
+    same dependencies when it is deployed and when its container starts, so
+    the number of objects must not depend on where this code runs. Inside the
+    container the Secret is empty; the deployed values are already applied.
+    """
+    values = {}
+    if modal.is_local():
+        values = {key: os.environ[key] for key in DEPLOY_SETTINGS if os.environ.get(key)}
+    return [modal.Secret.from_dict(values)]
 
 
 app = modal.App(APP_NAME)

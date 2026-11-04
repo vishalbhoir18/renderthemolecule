@@ -1,5 +1,6 @@
 """Checks on the Modal deployment file that need no Modal account."""
 
+import importlib
 import re
 from pathlib import Path
 
@@ -37,11 +38,31 @@ def test_entry_point_builds_the_web_app(monkeypatch, tmp_path):
         assert page.status_code == 200 and "Vishal Bhoir" in page.text
 
 
-def test_optional_settings_come_from_the_deploy_environment(monkeypatch):
+def web_dependencies(monkeypatch, local: bool) -> list[str]:
+    """The objects Modal records for the web function, as seen locally or in the container."""
+    from modal._utils.async_utils import synchronizer
+
+    monkeypatch.setattr(modal, "is_local", lambda: local)
+    module = importlib.reload(modal_app)
+    return [type(dep).__name__ for dep in synchronizer._translate_in(module.web)._deps_()]
+
+
+@pytest.mark.parametrize("sheet_settings", [True, False])
+def test_same_dependencies_when_deployed_and_in_the_container(monkeypatch, sheet_settings):
+    # Modal refuses to start a container whose function has different
+    # dependencies from the deployed one ("Function has 1 dependencies but
+    # container got 2 object ids"). This happened when the Sheet settings
+    # made a Secret only on the deploying computer.
     for key in modal_app.DEPLOY_SETTINGS:
         monkeypatch.delenv(key, raising=False)
-    assert modal_app.settings_from_deploy_environment() == []
-    monkeypatch.setenv("SHEET_WEBHOOK_URL", "https://script.google.com/macros/s/x/exec")
-    monkeypatch.setenv("SHEET_TOKEN", "s3cret")
-    secrets = modal_app.settings_from_deploy_environment()
-    assert len(secrets) == 1 and isinstance(secrets[0], modal.Secret)
+    if sheet_settings:
+        monkeypatch.setenv("SHEET_WEBHOOK_URL", "https://script.google.com/macros/s/x/exec")
+        monkeypatch.setenv("SHEET_TOKEN", "s3cret")
+    try:
+        deployed = web_dependencies(monkeypatch, local=True)
+        in_container = web_dependencies(monkeypatch, local=False)
+    finally:
+        monkeypatch.undo()
+        importlib.reload(modal_app)
+    assert deployed == in_container
+    assert "_Secret" in deployed
