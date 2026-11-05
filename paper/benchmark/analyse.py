@@ -144,7 +144,7 @@ def build_figures(data: list[dict]) -> None:
         if p:
             items.append((p, label))
     if items:
-        montage(items, 3, 520, FIG / "figure2_styles_4hhb.png")
+        montage(items, 3, 520, FIG / "figure2_styles_4hhb.png", crop_credit=False)
 
     gallery = []
     for pdb, style, label in (
@@ -159,7 +159,7 @@ def build_figures(data: list[dict]) -> None:
     if asm:
         gallery.append((asm, "1CD3 phiX174 procapsid, 60-mer"))
     if gallery:
-        montage(gallery, 3, 520, FIG / "figure3_gallery.png")
+        montage(gallery, 3, 520, FIG / "figure3_gallery.png", crop_credit=False)
 
 
 def plots(data: list[dict], quality: list[dict]) -> None:
