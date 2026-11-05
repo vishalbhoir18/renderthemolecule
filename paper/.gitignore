@@ -1,0 +1,4 @@
+# Benchmark working files (structures cache, live log, in-progress renders)
+benchmark/.cache/
+benchmark/run.log
+benchmark/renders/
