@@ -39,3 +39,4 @@ E1,E1|pdb_id=1bna|style=cartoon,1BNA,cartoon,default,ambient_occlusion,standard,
 E1,E1|pdb_id=1bna|style=surface,1BNA,surface,default,ambient_occlusion,standard,32,1280x720,0,4,ok,566,1.9,15.1,20.2,1938,164,,paper/benchmark/renders/E1_1bna_surface_default_standard_1280x720_t4.png
 E1,E1|pdb_id=1bna|style=spheres,1BNA,spheres,default,ambient_occlusion,standard,32,1280x720,0,4,ok,566,1.7,11.3,16.2,1885,240,,paper/benchmark/renders/E1_1bna_spheres_default_standard_1280x720_t4.png
 E1,E1|pdb_id=1ubq|style=cartoon,1UBQ,cartoon,default,ambient_occlusion,standard,32,1280x720,0,4,ok,660,2.1,13.2,18.6,1959,161,,paper/benchmark/renders/E1_1ubq_cartoon_default_standard_1280x720_t4.png
+E1,E1|pdb_id=1ubq|style=surface,1UBQ,surface,default,ambient_occlusion,standard,32,1280x720,0,4,ok,660,2.0,19.2,24.7,1928,201,,paper/benchmark/renders/E1_1ubq_surface_default_standard_1280x720_t4.png
