@@ -30,4 +30,4 @@ python paper/benchmark/run_benchmark.py
 python paper/benchmark/analyse.py
 ```
 
-The full run (63 render attempts, 60 images) took about an hour on 4 vCPUs and needs about 15 GB of memory for the largest entries. The 60 images are written to `paper/benchmark/renders/` (git-ignored, 25 MB).
+The full run (63 render attempts, 60 images) took about an hour on 4 vCPUs. The ribosome surface (4UG0) peaks at about 10 GB, and the HIV-1 capsid cartoon (3J3Q) runs out of memory on a 15 GB machine, as reported in the manuscript. The 60 images are written to `paper/benchmark/renders/` (git-ignored, 25 MB).
