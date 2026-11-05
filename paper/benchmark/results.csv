@@ -1,0 +1,9 @@
+experiment,run_id,pdb_id,style,color,material,quality,samples,resolution,assembly,threads,status,atoms_rendered,setup_s,render_s,wall_s,peak_rss_mb,png_kb,error,image
+E6,E6|pdb_id=4hhb|style=cartoon|tag=rep1,4HHB,cartoon,default,ambient_occlusion,standard,32,1280x720,0,4,ok,4779,2.6,29.2,35.1,2040,459,,paper/benchmark/renders/E6_4hhb_cartoon_default_standard_1280x720_t4_rep1.png
+E6,E6|pdb_id=4hhb|style=cartoon|tag=rep2,4HHB,cartoon,default,ambient_occlusion,standard,32,1280x720,0,4,ok,4779,2.3,27.9,33.4,2029,459,,paper/benchmark/renders/E6_4hhb_cartoon_default_standard_1280x720_t4_rep2.png
+E2,E2|pdb_id=4hhb|style=cartoon,4HHB,cartoon,default,ambient_occlusion,standard,32,1280x720,0,4,ok,4779,2.4,28.1,33.7,2028,459,,paper/benchmark/renders/E2_4hhb_cartoon_default_standard_1280x720_t4.png
+E2,E2|pdb_id=4hhb|style=ribbon,4HHB,ribbon,default,ambient_occlusion,standard,32,1280x720,0,4,ok,4779,2.3,30.1,35.8,2018,474,,paper/benchmark/renders/E2_4hhb_ribbon_default_standard_1280x720_t4.png
+E2,E2|pdb_id=4hhb|style=surface,4HHB,surface,default,ambient_occlusion,standard,32,1280x720,0,4,ok,4779,2.5,31.6,37.7,2051,377,,paper/benchmark/renders/E2_4hhb_surface_default_standard_1280x720_t4.png
+E2,E2|pdb_id=4hhb|style=spheres,4HHB,spheres,default,ambient_occlusion,standard,32,1280x720,0,4,ok,4779,2.0,22.1,27.2,1893,621,,paper/benchmark/renders/E2_4hhb_spheres_default_standard_1280x720_t4.png
+E2,E2|pdb_id=4hhb|style=ball_and_stick,4HHB,ball_and_stick,default,ambient_occlusion,standard,32,1280x720,0,4,ok,4779,2.4,39.7,45.5,2150,664,,paper/benchmark/renders/E2_4hhb_ball_and_stick_default_standard_1280x720_t4.png
+E2,E2|pdb_id=4hhb|style=sticks,4HHB,sticks,default,ambient_occlusion,standard,32,1280x720,0,4,ok,4779,2.2,28.9,34.0,2286,596,,paper/benchmark/renders/E2_4hhb_sticks_default_standard_1280x720_t4.png
