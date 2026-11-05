@@ -34,8 +34,11 @@ def luminance(path: Path) -> np.ndarray:
     return y[: int(round(y.shape[0] * (1 - CREDIT_FRACTION)))]
 
 
-def ssim(x: np.ndarray, y: np.ndarray, data_range: float = 255.0) -> float:
-    """Mean SSIM (Wang et al., 2004): Gaussian window sigma 1.5, K1 0.01, K2 0.03."""
+def ssim(x: np.ndarray, y: np.ndarray, data_range: float = 255.0, mask=None) -> float:
+    """Mean SSIM (Wang et al., 2004): Gaussian window sigma 1.5, K1 0.01, K2 0.03.
+
+    With ``mask``, the SSIM map is averaged over the masked pixels only.
+    """
     c1, c2 = (0.01 * data_range) ** 2, (0.03 * data_range) ** 2
     blur = lambda a: gaussian_filter(a, 1.5, truncate=3.5)  # noqa: E731
     mx, my = blur(x), blur(y)
@@ -43,11 +46,18 @@ def ssim(x: np.ndarray, y: np.ndarray, data_range: float = 255.0) -> float:
     syy = blur(y * y) - my * my
     sxy = blur(x * y) - mx * my
     s = ((2 * mx * my + c1) * (2 * sxy + c2)) / ((mx * mx + my * my + c1) * (sxx + syy + c2))
-    return float(s.mean())
+    return float(s[mask].mean() if mask is not None else s.mean())
 
 
-def psnr(x: np.ndarray, y: np.ndarray) -> float:
-    mse = float(np.mean((x - y) ** 2))
+def foreground(ref: np.ndarray) -> np.ndarray:
+    """Pixels of the molecule: not white background in the reference, grown by 4 px."""
+    from scipy.ndimage import binary_dilation
+    return binary_dilation(ref < 250, iterations=4)
+
+
+def psnr(x: np.ndarray, y: np.ndarray, mask=None) -> float:
+    d = (x - y) if mask is None else (x - y)[mask]
+    mse = float(np.mean(d ** 2))
     return float("inf") if mse == 0 else 10 * np.log10(255.0**2 / mse)
 
 
@@ -60,6 +70,7 @@ def image_quality(data: list[dict]) -> list[dict]:
         if ref is None:
             continue
         y_ref = luminance(ref["image"])
+        fg = foreground(y_ref)
         for r in sorted(group, key=lambda r: int(r["samples"])):
             y = luminance(r["image"])
             out.append({
@@ -68,6 +79,9 @@ def image_quality(data: list[dict]) -> list[dict]:
                 "wall_s": float(r["wall_s"]),
                 "ssim": round(ssim(y, y_ref), 4),
                 "psnr_db": round(psnr(y, y_ref), 2) if r is not ref else None,
+                "foreground_fraction": round(float(fg.mean()), 3),
+                "ssim_fg": round(ssim(y, y_ref, mask=fg), 4),
+                "psnr_fg_db": round(psnr(y, y_ref, mask=fg), 2) if r is not ref else None,
             })
     return out
 
