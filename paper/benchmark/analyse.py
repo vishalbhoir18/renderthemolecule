@@ -229,6 +229,26 @@ def plots(data: list[dict], quality: list[dict]) -> None:
         plt.close(fig)
 
 
+def sample_crops(data: list[dict]) -> None:
+    """Supplementary Figure S1: the same 4HHB region at each sample budget, enlarged 2x."""
+    e3 = [r for r in data if r["experiment"] == "E3" and r["status"] == "ok" and r["pdb_id"] == "4HHB"]
+    if len(e3) < 4:
+        return
+    e3.sort(key=lambda r: int(r["samples"]))
+    box = (700, 250, 1020, 430)  # a helix-rich region with a haem group, in 1280 x 720 pixels
+    w, h = (box[2] - box[0]) * 2, (box[3] - box[1]) * 2
+    pad, cap = 10, 30
+    sheet = Image.new("RGB", (len(e3) * (w + pad) + pad, h + cap + 2 * pad), "white")
+    draw = ImageDraw.Draw(sheet)
+    for i, r in enumerate(e3):
+        crop = Image.open(ROOT / r["image"]).convert("RGB").crop(box).resize((w, h), Image.NEAREST)
+        x = pad + i * (w + pad)
+        sheet.paste(crop, (x, pad))
+        label = f"{r['samples']} samples ({r['quality']}), {float(r['render_s']):.0f} s"
+        draw.text((x, pad + h + 6), label, fill=(40, 40, 40), font=label_font(18))
+    sheet.save(FIG / "figureS1_sample_crops.png", optimize=True)
+
+
 def main() -> None:
     data = rows()
     summary = {
@@ -239,6 +259,7 @@ def main() -> None:
     }
     (HERE / "summary.json").write_text(json.dumps(summary, indent=2))
     build_figures(data)
+    sample_crops(data)
     plots(data, summary["image_quality"])
     print(json.dumps(summary, indent=2))
 
