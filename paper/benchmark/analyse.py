@@ -173,7 +173,7 @@ def build_figures(data: list[dict]) -> None:
     if asm:
         gallery.append((asm, "1CD3 phiX174 procapsid, 60-mer"))
     if gallery:
-        montage(gallery, 3, 520, FIG / "figure3_gallery.png", crop_credit=False)
+        montage(gallery, 3, 520, FIG / "figure4_gallery.png", crop_credit=False)
 
 
 def plots(data: list[dict], quality: list[dict]) -> None:
@@ -181,47 +181,64 @@ def plots(data: list[dict], quality: list[dict]) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    import matplotlib.ticker  # noqa: F401
 
     plt.rcParams.update({"font.size": 9, "axes.spines.top": False, "axes.spines.right": False,
                          "font.family": "DejaVu Sans"})
     FIG.mkdir(parents=True, exist_ok=True)
     e1 = [r for r in data if r["experiment"] == "E1" and r["status"] == "ok"]
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.0))
-    markers = {"cartoon": ("o", "#4C72B0"), "surface": ("s", "#999999"), "spheres": ("^", "#555555")}
-    for style, (m, c) in markers.items():
+    fig, axes = plt.subplots(2, 1, figsize=(5.5, 5.6), sharex=True)
+    series = {"cartoon": ("o", "#8C8C8C", 1.0), "surface": ("s", "#2A6FDB", 1.0),
+              "spheres": ("^", "#BDBDBD", 1.0)}
+    for style, (m, c, a) in series.items():
         pts = sorted((int(r["atoms_rendered"]), float(r["wall_s"]), float(r["peak_rss_mb"]) / 1024)
                      for r in e1 if r["style"] == style)
         if not pts:
             continue
         x, t, mem = zip(*pts)
-        axes[0].plot(x, t, marker=m, color=c, label=style.capitalize(), lw=1)
-        axes[1].plot(x, mem, marker=m, color=c, label=style.capitalize(), lw=1)
-    for ax, ylab in zip(axes, ("Wall-clock time per image (s)", "Peak memory (GB)")):
-        ax.set_xscale("log")
-        ax.set_xlabel("Atoms rendered")
-        ax.set_ylabel(ylab)
-    axes[0].set_yscale("log")
-    axes[0].legend(frameon=False)
+        axes[0].plot(x, t, marker=m, color=c, alpha=a, label=style.capitalize(), lw=1.2, ms=4)
+        axes[1].plot(x, mem, marker=m, color=c, alpha=a, label=style.capitalize(), lw=1.2, ms=4)
+    killed = [r for r in data if r["experiment"] == "E1" and r["status"].startswith("crash")]
+    for r in killed:
+        axes[1].plot([2_440_800], [float(r["peak_rss_mb"]) / 1024], marker="x", color="black", ms=7)
+        axes[1].annotate(f"{r['pdb_id']} cartoon: killed (out of memory)",
+                         (2_440_800, float(r["peak_rss_mb"]) / 1024), xytext=(-8, 0),
+                         textcoords="offset points", ha="right", va="center", fontsize=7.5)
+    axes[1].axhline(8, color="#555555", ls="--", lw=0.8)
+    axes[1].text(130, 8.3, "Public server memory (8 GB)", fontsize=7.5, color="#555555")
+    axes[0].set_ylabel("Wall-clock time per image (s)")
+    axes[1].set_ylabel("Peak memory (GB)")
+    axes[1].set_xlabel("Atoms rendered (log scale)")
+    axes[1].set_xscale("log")
+    axes[1].set_xlim(100, 4e6)
+    axes[0].set_ylim(0, 190)
+    axes[1].set_ylim(0, 15)
+    axes[1].xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(
+        lambda v, _: f"{v / 1e6:g}M" if v >= 1e6 else f"{v / 1e3:g}k" if v >= 1e3 else f"{v:g}"))
+    axes[0].legend(frameon=False, loc="upper left")
     axes[0].set_title("A", loc="left", fontweight="bold")
     axes[1].set_title("B", loc="left", fontweight="bold")
     fig.tight_layout()
     for ext in ("png", "pdf"):
-        fig.savefig(FIG / f"figure4_scaling.{ext}", dpi=300)
+        fig.savefig(FIG / f"figure3_scaling.{ext}", dpi=300)
     plt.close(fig)
 
     if quality:
         fig, ax = plt.subplots(figsize=(3.5, 3.0))
-        for (pdb, style), c in ((("4HHB", "cartoon"), "#4C72B0"), (("1AON", "surface"), "#777777")):
-            pts = [(q["render_s"], q["ssim"], q["samples"]) for q in quality
+        for (pdb, style), c in ((("4HHB", "cartoon"), "#555555"), (("1AON", "surface"), "#AAAAAA")):
+            pts = [(q["render_s"], q["psnr_fg_db"], q["samples"]) for q in quality
                    if q["pdb_id"] == pdb and q["quality"] != "reference"]
             if not pts:
                 continue
             x, y, n = zip(*pts)
             ax.plot(x, y, marker="o", color=c, lw=1, label=f"{pdb} {style}")
             for xi, yi, ni in pts:
-                ax.annotate(f"{ni}", (xi, yi), textcoords="offset points", xytext=(4, -10), fontsize=7)
+                if ni == 32:
+                    ax.plot([xi], [yi], marker="o", color="#2A6FDB", ms=7, zorder=3)
+                ax.annotate(f"{ni}", (xi, yi), textcoords="offset points", xytext=(6, 4), fontsize=7)
         ax.set_xlabel("Path-tracing time (s)")
-        ax.set_ylabel("SSIM vs 512-sample reference")
+        ax.set_ylabel("Foreground PSNR vs 512 samples (dB)")
+        ax.set_ylim(39, 52)
         ax.legend(frameon=False, fontsize=8)
         fig.tight_layout()
         for ext in ("png", "pdf"):
