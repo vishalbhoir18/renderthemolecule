@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 RENDER_NAME_RE = re.compile(r"^[0-9a-f]{64}\.png$")
 # Fields whose validation messages already say which field is wrong.
-SELF_EXPLAINING_FIELDS = {"pdb_id", "name", "email"}
+SELF_EXPLAINING_FIELDS = {"pdb_id", "name", "email", "institution", "country"}
 
 
 def _error(status: int, message: str) -> JSONResponse:
@@ -102,6 +102,10 @@ def create_app(
     def index() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html")
 
+    @app.get("/privacy", include_in_schema=False)
+    def privacy() -> FileResponse:
+        return FileResponse(STATIC_DIR / "privacy.html")
+
     @app.get("/healthz", include_in_schema=False)
     def healthz() -> dict:
         return {"status": "ok", **manager.stats()}
@@ -127,7 +131,10 @@ def create_app(
 
     @app.post("/api/render", status_code=202)
     def submit(body: Submission, request: Request):
-        submitter = Submitter(name=body.name, email=body.email, base_url=_base_url(request, settings))
+        submitter = Submitter(
+            name=body.name, email=body.email, base_url=_base_url(request, settings),
+            institution=body.institution, country=body.country,
+        )
         try:
             job = manager.submit(body.render_request(), _client_id(request), submitter)
         except QueueFull:

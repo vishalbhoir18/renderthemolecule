@@ -36,7 +36,7 @@ Free software under the GNU GPL v3 or later.
   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/vishalbhoir18/renderthemolecule/blob/main/notebooks/render_the_molecule.ipynb)
 * **Landing page:** <https://vishalbhoir18.github.io/renderthemolecule/>
 * **Command line** (Linux x86-64, Python 3.13, after `pip install -r requirements.txt`):
-  `python -m app.cli --pdb-id 4HHB --name "Your Name" --email you@example.org --out results`
+  `python -m app.cli --pdb-id 4HHB --name "Your Name" --email you@example.org --institution "Your University" --country India --out results`
   (`--help` lists every option).
 
 ## How it works
@@ -146,12 +146,12 @@ pushes to `main` that pass CI are then deployed. For the Sheet record, add
 
 ## Record who rendered what in a Google Sheet
 
-Visitors must enter their **name and email** before rendering. Each finished request
+Visitors must enter their **name, email, institution and country** before rendering. Each finished request
 (including ones served from the cache, and failed ones) adds a row to a private Google
 Sheet in your own Google account:
 
-| Time | Name | Email | PDB ID | Style | Colour | … all options | Status | From cache | Render time (s) | Error | Open again | Source |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Time | Name | Email | PDB ID | Style | Colour | … all options | Status | From cache | Render time (s) | Error | Open again | Source | Institution | Country |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 
 *Source* is **Web app** or **Colab** (renders made with the Colab notebook).
 
@@ -188,10 +188,11 @@ it cannot fake website rows. If it is ever abused, change `COLAB_TOKEN` in the s
 deploy a new version) and in `colab_recording.json`; the website is not affected. Colab users
 run their own copy of the notebook, so recording there relies on their honesty.
 
-**Updating from the first version of the script** (without `COLAB_TOKEN`): paste the new
-`Code.gs`, put your existing website password back into `TOKEN`, set `COLAB_TOKEN`, then
-**Deploy → Manage deployments → Edit → Version: New version → Deploy** (the URL stays the
-same). Existing rows are kept; the *Source* column is added to the header automatically.
+**Updating the script** (whenever `Code.gs` changes, for example when the *Source*,
+*Institution* and *Country* columns were added): paste the new `Code.gs`, put your existing
+values back into `TOKEN` and `COLAB_TOKEN`, then **Deploy → Manage deployments → Edit →
+Version: New version → Deploy** (the URL stays the same). Existing rows are kept; new
+columns are always added at the end and their headers appear automatically.
 
 If you later change the script, use **Deploy → Manage deployments → Edit → Version: New
 version**, or Google keeps serving the old code. If the Sheet cannot be reached, the app
@@ -199,8 +200,23 @@ keeps rendering and retries sending the rows (they are lost only if the Space re
 before the Sheet is reachable again). The app's logs say why a send failed, for example
 a wrong token.
 
-Because the site records personal data, keep the Sheet private and delete a person's rows
-if they ask you to.
+### Privacy notice
+
+The details are covered by a short privacy notice: [`app/static/privacy.html`](app/static/privacy.html),
+served by the web app at `/privacy` and copied to [`docs/privacy.html`](docs/privacy.html) for the
+landing page (a test keeps the two identical). It is linked next to the form fields, in the web app's
+footer, on the landing page and in the notebook, and its key sentence is shown wherever details
+are asked for:
+
+> Your information will be used to understand academic adoption and improve the application.
+> It will not be shared or used for marketing without your separate consent.
+
+Keep the Sheet private, and delete a person's rows if they ask you to. The notice points
+people to <https://linktr.ee/thebioway> for such requests; to give an email address instead,
+change the *Your choices* paragraph of both copies.
+
+**Journals.** The NAR Web Server Issue does not accept tools that force users to register, log
+in or enter an email address. Before submitting there, make the details optional.
 
 ## Google Colab notebook and landing page
 

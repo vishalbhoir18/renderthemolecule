@@ -5,7 +5,8 @@ from fastapi.testclient import TestClient
 
 from app.main import create_app
 
-VISITOR = {"name": "Ada Lovelace", "email": "ada@example.org"}
+VISITOR = {"name": "Ada Lovelace", "email": "ada@example.org", "institution": "University of London",
+           "country": "United Kingdom"}
 
 
 class FakeRecorder:
@@ -51,7 +52,9 @@ def poll(client, job_id, timeout=5):
 def test_index_and_options(client):
     page = client.get("/")
     assert page.status_code == 200 and "Render the Molecule" in page.text
-    assert 'id="email"' in page.text and 'id="name"' in page.text
+    for field in ("name", "email", "institution", "country"):
+        assert f'id="{field}"' in page.text
+    assert 'href="/privacy"' in page.text
     assert 'Render the Molecule <span class="byline">by <a href="https://linktr.ee/thebioway"' in page.text
     assert 'Render the Molecule App developed by <a href="https://linktr.ee/thebioway"' in page.text
     # The footer's DOI must match the one used in citations (app/about.py).
@@ -61,7 +64,7 @@ def test_index_and_options(client):
     assert client.get("/static/app.js").status_code == 200
     opts = client.get("/api/options").json()
     assert {c["value"] for c in opts["choices"]["style"]} >= {"cartoon", "surface"}
-    assert "name" not in opts["defaults"] and "email" not in opts["defaults"]
+    assert not {"name", "email", "institution", "country"} & set(opts["defaults"])
 
 
 def test_render_round_trip(client):
@@ -82,9 +85,13 @@ def test_render_round_trip(client):
     [
         ({}, "Please enter your name."),
         ({"name": "Ada"}, "Please enter your email address."),
-        ({"name": "  ", "email": "ada@example.org"}, "Please enter your name."),
-        ({"name": "Ada", "email": "not-an-email"}, "valid email address"),
-        ({"name": "=HYPERLINK(1)", "email": "ada@example.org"}, "cannot start with"),
+        ({**VISITOR, "name": "  "}, "Please enter your name."),
+        ({**VISITOR, "email": "not-an-email"}, "valid email address"),
+        ({**VISITOR, "name": "=HYPERLINK(1)"}, "cannot start with"),
+        ({"name": "Ada", "email": "a@b.org"}, "Please enter your institution."),
+        ({**VISITOR, "institution": ""}, "Please enter your institution."),
+        ({**VISITOR, "country": " "}, "Please enter your country."),
+        ({**VISITOR, "country": "@home"}, "Your country cannot start with"),
     ],
 )
 def test_name_and_email_are_required(client, visitor, message):
@@ -98,7 +105,8 @@ def test_each_render_is_recorded_once_per_person(client, recorder, fake_renderer
     first = render(client, pdb_id="1EMA").json()
     # Someone else asks for the same picture while it renders: one job, two records.
     second = client.post(
-        "/api/render", json={"pdb_id": "1ema", "name": "Grace Hopper", "email": "Grace@Example.org "}
+        "/api/render", json={"pdb_id": "1ema", "name": "Grace Hopper", "email": "Grace@Example.org ",
+                             "institution": "Yale University", "country": "United States"}
     ).json()
     assert first["id"] == second["id"]
     fake_renderer.gate.set()
@@ -110,10 +118,10 @@ def test_each_render_is_recorded_once_per_person(client, recorder, fake_renderer
     while len(recorder.rows) < 3 and time.time() < deadline:
         time.sleep(0.01)
     rows = recorder.rows
-    assert [(r["name"], r["email"], r["cached"]) for r in rows] == [
-        ("Ada Lovelace", "ada@example.org", "no"),
-        ("Grace Hopper", "grace@example.org", "no"),
-        ("Ada Lovelace", "ada@example.org", "yes"),
+    assert [(r["name"], r["email"], r["institution"], r["country"], r["cached"]) for r in rows] == [
+        ("Ada Lovelace", "ada@example.org", "University of London", "United Kingdom", "no"),
+        ("Grace Hopper", "grace@example.org", "Yale University", "United States", "no"),
+        ("Ada Lovelace", "ada@example.org", "University of London", "United Kingdom", "yes"),
     ]
     assert rows[0]["pdb_id"] == "1EMA" and rows[0]["status"] == "done"
     assert rows[0]["link"].startswith("http://testserver/?id=1EMA&style=cartoon")
@@ -134,7 +142,8 @@ def test_job_status_never_reveals_who_asked(client):
     job = render(client, pdb_id="4hhb").json()
     body = poll(client, job["id"])
     text = str(job) + str(body)
-    assert "ada@example.org" not in text and "Ada" not in text
+    for detail in VISITOR.values():
+        assert detail not in text
 
 
 def test_public_url_from_proxy_headers(client, recorder):
@@ -199,3 +208,10 @@ def test_recorder_lifecycle(settings, fake_renderer, recorder):
     with TestClient(create_app(settings, fake_renderer, recorder)):
         assert recorder.started
     assert recorder.stopped
+
+
+def test_privacy_notice_is_served(client):
+    page = client.get("/privacy")
+    assert page.status_code == 200
+    assert "understand academic adoption and improve the application" in page.text
+    assert "not be shared or used for marketing without your separate consent" in page.text

@@ -22,6 +22,8 @@ PDB_ID_RE = re.compile(r"^(?:[1-9][a-z0-9]{3}|pdb_[0-9a-z]{8})$")
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 NAME_MAX = 100
 EMAIL_MAX = 254
+INSTITUTION_MAX = 200
+COUNTRY_MAX = 80
 # Spreadsheets treat text starting with these as a formula.
 FORMULA_START = ("=", "+", "-", "@")
 
@@ -165,29 +167,49 @@ class RenderRequest(BaseModel):
         return urlencode(params)
 
 
+def _clean_text(value: object, label: str, max_len: int) -> str:
+    """Shared checks for the free-text visitor fields (name, institution, country)."""
+    text = " ".join(value.split()) if isinstance(value, str) else ""
+    if not text:
+        raise ValueError(f"Please enter your {label}.")
+    if len(text) > max_len:
+        raise ValueError(f"Your {label} is too long (at most {max_len} characters).")
+    if text.startswith(FORMULA_START):
+        raise ValueError(f"Your {label} cannot start with =, +, - or @.")
+    if not text.isprintable():
+        raise ValueError(f"Your {label} contains characters that are not allowed.")
+    return text
+
+
+VISITOR_FIELDS = ("name", "email", "institution", "country")
+
+
 class Submission(RenderRequest):
     """What the web form posts: the render options plus who is asking.
 
-    Name and email are recorded (see app/sheet.py) but are not part of the
-    image cache key, so everyone shares cached renders.
+    The visitor's details are recorded (see app/sheet.py) but are not part of
+    the image cache key, so everyone shares cached renders.
     """
 
     name: str = Field(default="", validate_default=True)
     email: str = Field(default="", validate_default=True)
+    institution: str = Field(default="", validate_default=True)
+    country: str = Field(default="", validate_default=True)
 
     @field_validator("name", mode="before")
     @classmethod
     def _check_name(cls, value: object) -> str:
-        name = " ".join(value.split()) if isinstance(value, str) else ""
-        if not name:
-            raise ValueError("Please enter your name.")
-        if len(name) > NAME_MAX:
-            raise ValueError(f"Your name is too long (at most {NAME_MAX} characters).")
-        if name.startswith(FORMULA_START):
-            raise ValueError("Your name cannot start with =, +, - or @.")
-        if not name.isprintable():
-            raise ValueError("Your name contains characters that are not allowed.")
-        return name
+        return _clean_text(value, "name", NAME_MAX)
+
+    @field_validator("institution", mode="before")
+    @classmethod
+    def _check_institution(cls, value: object) -> str:
+        return _clean_text(value, "institution", INSTITUTION_MAX)
+
+    @field_validator("country", mode="before")
+    @classmethod
+    def _check_country(cls, value: object) -> str:
+        return _clean_text(value, "country", COUNTRY_MAX)
 
     @field_validator("email", mode="before")
     @classmethod
@@ -205,7 +227,7 @@ class Submission(RenderRequest):
         return email.lower()
 
     def render_request(self) -> RenderRequest:
-        return RenderRequest(**self.model_dump(exclude={"name", "email"}))
+        return RenderRequest(**self.model_dump(exclude=set(VISITOR_FIELDS)))
 
 
 def option_lists() -> dict:
