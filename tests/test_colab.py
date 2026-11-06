@@ -7,19 +7,20 @@ import pytest
 
 from app import colab
 
-FORM = dict(name=" Ada ", email="ada@example.org", pdb_id=" 4hhb ", style="surface", color="rainbow",
+FORM = dict(name=" Ada ", email="ada@example.org", institution=" IISc ", country="India", pdb_id=" 4hhb ", style="surface", color="rainbow",
             material="flat", viewpoint="top", resolution="800x800", quality="draft",
             background="transparent", ligands=False, assembly=True, credit=True)
 
 
 @pytest.mark.parametrize(
-    "name, email, pdb_id, message",
-    [("", "a@b.org", "4HHB", "name"), ("Ada", "nope", "4HHB", "email"), ("Ada", "a@b.org", " ", "PDB ID")],
+    "change, message",
+    [({"name": ""}, "name"), ({"email": "nope"}, "email"), ({"institution": " "}, "institution"),
+     ({"country": ""}, "country"), ({"pdb_id": " "}, "PDB ID")],
 )
-def test_check_details(name, email, pdb_id, message):
+def test_check_details(change, message):
     with pytest.raises(ValueError, match=message):
-        colab.check_details(name, email, pdb_id)
-    colab.check_details("Ada", "a@b.org", "4HHB")  # valid: no error
+        colab.check_details({**FORM, **change})
+    colab.check_details(FORM)  # valid: no error
 
 
 def test_cli_args_carry_every_choice():
@@ -27,6 +28,7 @@ def test_cli_args_carry_every_choice():
     assert args[:3] == ["/venv/bin/python", "-m", "app.cli"]
     pairs = dict(zip(args[3::2], args[4::2]))
     assert pairs["--pdb-id"] == "4hhb" and pairs["--name"] == "Ada" and pairs["--out"] == "/out"
+    assert pairs["--institution"] == "IISc" and pairs["--country"] == "India"
     assert pairs["--style"] == "surface" and pairs["--background"] == "transparent"
     assert "--no-ligands" in args and "--assembly" in args and "--credit" in args
 

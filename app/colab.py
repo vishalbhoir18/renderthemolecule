@@ -18,20 +18,25 @@ SWITCH_FIELDS = ("ligands", "assembly", "credit")
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
-def check_details(name: str, email: str, pdb_id: str) -> None:
+def check_details(form: dict) -> None:
     """Quick check of the form before the long install; the CLI checks everything."""
-    if not name.strip():
+    if not form["name"].strip():
         raise ValueError("Please enter your name in the form.")
-    if not EMAIL_RE.fullmatch(email.strip()):
+    if not EMAIL_RE.fullmatch(form["email"].strip()):
         raise ValueError("Please enter a valid email address in the form, like name@university.edu.")
-    if not pdb_id.strip():
+    if not form["institution"].strip():
+        raise ValueError("Please enter your institution in the form.")
+    if not form["country"].strip():
+        raise ValueError("Please enter your country in the form.")
+    if not form["pdb_id"].strip():
         raise ValueError("Please enter a PDB ID in the form, for example 4HHB.")
 
 
 def cli_args(form: dict, python: str, out_dir: str) -> list[str]:
     args = [python, "-m", "app.cli",
             "--pdb-id", form["pdb_id"].strip(), "--name", form["name"].strip(),
-            "--email", form["email"].strip(), "--out", out_dir]
+            "--email", form["email"].strip(), "--institution", form["institution"].strip(),
+            "--country", form["country"].strip(), "--out", out_dir]
     for field in CHOICE_FIELDS:
         args += [f"--{field}", str(form[field])]
     for field in SWITCH_FIELDS:

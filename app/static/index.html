@@ -27,8 +27,20 @@
         <label for="email">Your email</label>
         <input id="email" name="email" type="email" autocomplete="email" maxlength="254"
                placeholder="name@university.edu" required>
-        <p class="note">Both are required. Your name, email and the images you render are recorded
-          privately by the site owner to see who uses this tool. They are not shown to other visitors.</p>
+      </div>
+      <div class="field">
+        <label for="institution">Institution</label>
+        <input id="institution" name="institution" type="text" autocomplete="organization" maxlength="200"
+               placeholder="University, institute or company" required>
+      </div>
+      <div class="field">
+        <label for="country">Country</label>
+        <input id="country" name="country" type="text" autocomplete="country-name" maxlength="80"
+               list="countries" placeholder="Start typing, e.g. India" required>
+        <datalist id="countries"></datalist>
+        <p class="note">All four are required. Your information will be used to understand academic
+          adoption and improve the application. It will not be shared or used for marketing without
+          your separate consent. <a href="/privacy" target="_blank" rel="noopener">Privacy notice</a></p>
       </div>
 
       <div class="field">
@@ -145,6 +157,7 @@
       Structures come from the <a href="https://www.rcsb.org" target="_blank" rel="noopener">RCSB Protein Data Bank</a>.
       If you publish an image, please cite this tool, Molecular Nodes and the PDB entry; each result shows how.
     </p>
+    <p><a href="/privacy" target="_blank" rel="noopener">Privacy notice</a></p>
   </footer>
 
   <script src="/static/app.js"></script>

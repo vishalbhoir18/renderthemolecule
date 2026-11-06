@@ -49,6 +49,8 @@ class Submitter:
     email: str
     base_url: str  # where the site is served, for the "open again" link
     submitted_at: float = field(default_factory=time.time)
+    institution: str = ""
+    country: str = ""
 
 
 @dataclass(eq=False)

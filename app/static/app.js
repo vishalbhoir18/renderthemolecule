@@ -3,15 +3,14 @@
 const SELECTS = ["style", "color", "material", "viewpoint", "resolution", "quality", "background"];
 const CHECKS = ["ligands", "assembly", "credit"];
 const STORAGE_KEY = "rtm-options";
-const VISITOR_KEY = "rtm-visitor";  // name + email, kept only in this browser for next time
+const VISITOR = ["name", "email", "institution", "country"];
+const VISITOR_KEY = "rtm-visitor";  // the visitor's details, kept only in this browser for next time
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const POLL_MS = 1500;
 
 const $ = (id) => document.getElementById(id);
 const form = $("render-form");
 const pdbInput = $("pdb_id");
-const nameInput = $("name");
-const emailInput = $("email");
 const submitBtn = $("submit");
 
 let pollTimer = null;
@@ -32,8 +31,8 @@ async function loadOptions() {
   const params = new URLSearchParams(location.search);
   const stored = readStored();
   const visitor = readStored(VISITOR_KEY);
-  nameInput.value = visitor.name || "";
-  emailInput.value = visitor.email || "";
+  for (const field of VISITOR) $(field).value = visitor[field] || "";
+  loadCountries();
 
   for (const name of SELECTS) {
     const select = $(name);
@@ -52,21 +51,27 @@ async function loadOptions() {
   const id = params.get("id");
   if (id) {
     pdbInput.value = id.toUpperCase();
-    if (nameInput.value && emailInput.value) {
+    const missing = VISITOR.find((field) => !$(field).value.trim());
+    if (!missing) {
       form.requestSubmit();
     } else {
-      showError("Enter your name and email, then press Render image.");
-      (nameInput.value ? emailInput : nameInput).focus();
+      showError("Enter your name, email, institution and country, then press Render image.");
+      $(missing).focus();
     }
   }
 }
 
+// Country suggestions; typing any other country still works.
+async function loadCountries() {
+  try {
+    const names = await (await fetch("/static/countries.json")).json();
+    $("countries").replaceChildren(...names.map((name) => new Option(name)));
+  } catch { /* suggestions are optional */ }
+}
+
 function formValues() {
-  const values = {
-    pdb_id: pdbInput.value.trim(),
-    name: nameInput.value.trim(),
-    email: emailInput.value.trim(),
-  };
+  const values = { pdb_id: pdbInput.value.trim() };
+  for (const field of VISITOR) values[field] = $(field).value.trim();
   for (const name of SELECTS) values[name] = $(name).value;
   for (const name of CHECKS) values[name] = $(name).checked;
   return values;
@@ -74,10 +79,12 @@ function formValues() {
 
 // First problem with the form, as [message, field to focus], or null.
 function formProblem(values) {
-  if (!values.name) return ["Please enter your name.", nameInput];
+  if (!values.name) return ["Please enter your name.", $("name")];
   if (!EMAIL_RE.test(values.email)) {
-    return ["Please enter a valid email address, like name@university.edu.", emailInput];
+    return ["Please enter a valid email address, like name@university.edu.", $("email")];
   }
+  if (!values.institution) return ["Please enter your institution.", $("institution")];
+  if (!values.country) return ["Please enter your country.", $("country")];
   if (!values.pdb_id) return ["Please enter a PDB ID, for example 4HHB.", pdbInput];
   return null;
 }
@@ -220,7 +227,7 @@ form.addEventListener("submit", async (event) => {
   const options = {};
   for (const name of [...SELECTS, ...CHECKS]) options[name] = values[name];
   writeStored(options);
-  writeStored({ name: values.name, email: values.email }, VISITOR_KEY);
+  writeStored(Object.fromEntries(VISITOR.map((field) => [field, values[field]])), VISITOR_KEY);
   updateUrl(values);  // shareable link: options only, never name or email
 
   let job;

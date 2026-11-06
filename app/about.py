@@ -20,6 +20,12 @@ AUTHOR_URL = "https://linktr.ee/thebioway"
 # Where the tool can be used.
 SITE_URL = "https://vishalbhoir18--render-the-molecule.us-east.modal.run"  # web app (Modal)
 PAGES_URL = "https://vishalbhoir18.github.io/renderthemolecule/"  # landing page (docs/)
+PRIVACY_URL = PAGES_URL + "privacy.html"  # docs/privacy.html (same text as /privacy in the web app)
+# The short notice shown wherever details are asked for (web form, notebook, landing page).
+PRIVACY_SUMMARY = (
+    "Your information will be used to understand academic adoption and improve the application. "
+    "It will not be shared or used for marketing without your separate consent."
+)
 COLAB_URL = (
     "https://colab.research.google.com/github/vishalbhoir18/renderthemolecule/"
     "blob/main/notebooks/render_the_molecule.ipynb"

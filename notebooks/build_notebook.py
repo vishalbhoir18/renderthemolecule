@@ -48,8 +48,12 @@ def form_cell() -> str:
         '#@title 1. Your details and the molecule { display-mode: "form" }',
         'name = ""  #@param {type:"string"}',
         'email = ""  #@param {type:"string"}',
-        'pdb_id = "4HHB"  #@param {type:"string"}',
+        'institution = ""  #@param {type:"string"}',
+        'country = ""  #@param {type:"string"}',
+        f"#@markdown All four are required. {about.PRIVACY_SUMMARY}",
+        f"#@markdown [Privacy notice]({about.PRIVACY_URL})",
         "#@markdown ---",
+        'pdb_id = "4HHB"  #@param {type:"string"}',
     ]
     for field in ("style", "color", "material", "viewpoint", "resolution", "quality", "background"):
         choices = json.dumps(list(LABELS[field]))
@@ -61,12 +65,14 @@ def form_cell() -> str:
         "#@markdown (cartoon and ribbon). *Assembly*: the whole biological complex. *Credit*: small",
         "#@markdown credit line on the image (untick for a clean figure and cite in the text).",
         "",
-        "form = dict(name=name, email=email, pdb_id=pdb_id, style=style, color=color,",
-        "            material=material, viewpoint=viewpoint, resolution=resolution, quality=quality,",
-        "            background=background, ligands=ligands, assembly=assembly, credit=credit)",
+        "form = dict(name=name, email=email, institution=institution, country=country, pdb_id=pdb_id,",
+        "            style=style, color=color, material=material, viewpoint=viewpoint, resolution=resolution,",
+        "            quality=quality, background=background, ligands=ligands, assembly=assembly, credit=credit)",
         "import re",
-        "if not name.strip() or not re.fullmatch(r\"[^@\\s]+@[^@\\s]+\\.[^@\\s]+\", email.strip()) or not pdb_id.strip():",
-        '    raise SystemExit("Please fill in your name, a valid email and a PDB ID in the form above, then run again.")',
+        "if (not name.strip() or not re.fullmatch(r\"[^@\\s]+@[^@\\s]+\\.[^@\\s]+\", email.strip())",
+        "        or not institution.strip() or not country.strip() or not pdb_id.strip()):",
+        '    raise SystemExit("Please fill in your name, a valid email, your institution, your country "',
+        '                     "and a PDB ID in the form above, then run again.")',
         'print("Form OK:", pdb_id.strip().upper())',
     ]
     return "\n".join(lines)
@@ -144,7 +150,7 @@ Molecular Nodes on Google's free computers. Prefer a website? Use the
 
 **How to use**
 
-1. Fill in the form below: your name and email, the PDB ID and the options.
+1. Fill in the form below: your name, email, institution and country, the PDB ID and the options.
 2. Click **Runtime → Run all** (or press Ctrl+F9).
 3. The first run installs Blender and Molecular Nodes (about 1–2 minutes). Each render then
    takes about 30–120 seconds.
@@ -153,8 +159,8 @@ Molecular Nodes on Google's free computers. Prefer a website? Use the
 To render another molecule, change the form and run steps 1 and 3 again; the installation is
 kept until the Colab session ends.
 
-*Privacy: your name, email and what you render are recorded privately by the site owner to
-see who uses this tool. They are not shared.*
+*Privacy: your name, email, institution, country and what you render are recorded privately.
+{about.PRIVACY_SUMMARY} [Privacy notice]({about.PRIVACY_URL})*
 """
     outro = f"""
 ---

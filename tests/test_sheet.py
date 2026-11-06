@@ -32,11 +32,14 @@ def make_job(**changes) -> Job:
 
 
 def test_record_row():
-    submitter = Submitter("Ada", "ada@example.org", "https://x.hf.space", submitted_at=1_700_000_000.5)
+    submitter = Submitter("Ada", "ada@example.org", "https://x.hf.space", submitted_at=1_700_000_000.5,
+                          institution="IISc", country="India")
     row = sheet.record_row(make_job(), submitter)
     assert list(row) == sheet.ROW_KEYS
     assert row["time"] == 1_700_000_000_500
     assert (row["name"], row["email"], row["pdb_id"]) == ("Ada", "ada@example.org", "6VXX")
+    assert (row["institution"], row["country"], row["source"]) == ("IISc", "India", "Web app")
+    assert sheet.ROW_KEYS[-3:] == ["source", "institution", "country"]  # appended: old rows stay aligned
     assert row["assembly"] == "yes" and row["cached"] == "no" and row["render_s"] == 21.3
     assert row["link"] == (
         "https://x.hf.space/?id=6VXX&style=surface&color=default&material=ambient_occlusion"

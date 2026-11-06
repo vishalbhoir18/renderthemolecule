@@ -23,7 +23,8 @@ ROW_KEYS = [
     "time", "name", "email", "pdb_id", "style", "color", "material", "viewpoint",
     "resolution", "quality", "background", "ligands", "assembly", "credit",
     "status", "cached", "render_s", "error", "link",
-    "source",  # added later, so it is the last column and older rows stay aligned
+    # Added later, so they are the last columns and older rows stay aligned.
+    "source", "institution", "country",
 ]
 
 
@@ -53,6 +54,8 @@ def record_row(job: Job, submitter: Submitter) -> dict:
         "error": job.error or "",
         "link": f"{submitter.base_url}/?{req.share_query()}",
         "source": "Web app",
+        "institution": submitter.institution,
+        "country": submitter.country,
     }
     return row
 

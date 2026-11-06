@@ -49,11 +49,18 @@ def test_form_offers_exactly_the_web_app_choices(notebook):
 def test_form_stops_early_when_details_are_missing(notebook):
     with pytest.raises(SystemExit, match="Please fill in your name"):
         exec(cell(notebook, "form"), {})
-    filled = cell(notebook, "form").replace('name = ""', 'name = "Ada"').replace('email = ""', 'email = "a@b.org"')
+    filled = (cell(notebook, "form").replace('name = ""', 'name = "Ada"').replace('email = ""', 'email = "a@b.org"')
+              .replace('institution = ""', 'institution = "IISc"').replace('country = ""', 'country = "India"'))
     namespace = {}
     exec(filled, namespace)
     assert namespace["form"]["name"] == "Ada" and namespace["form"]["pdb_id"] == "4HHB"
-    assert set(namespace["form"]) == {"name", "email", "pdb_id", *LABELS, "ligands", "assembly", "credit"}
+    assert set(namespace["form"]) == {"name", "email", "institution", "country", "pdb_id", *LABELS,
+                                      "ligands", "assembly", "credit"}
+    # Each visitor detail is required on its own.
+    for field in ("name", "email", "institution", "country"):
+        missing = filled.replace(f'{field} = "{namespace[field]}"', f'{field} = ""')
+        with pytest.raises(SystemExit):
+            exec(missing, {})
 
 
 def test_install_cell_uses_the_dockerfile_libraries(notebook, builder):
@@ -79,3 +86,18 @@ def test_landing_page_links_and_images():
     for image in images:
         assert (ROOT / "docs" / image).exists(), image
     assert (ROOT / "docs" / ".nojekyll").exists()
+
+
+def test_privacy_notice_everywhere(notebook):
+    web = (ROOT / "app" / "static" / "privacy.html").read_text()
+    assert (ROOT / "docs" / "privacy.html").read_text() == web, "keep docs/privacy.html a copy of app/static/privacy.html"
+    for sentence in about.PRIVACY_SUMMARY.split(". "):
+        assert sentence.rstrip(".") in " ".join(web.split())
+    assert about.PRIVACY_URL.endswith("/privacy.html")
+    assert about.PRIVACY_URL in cell(notebook, "intro") and about.PRIVACY_URL in cell(notebook, "form")
+    assert about.PRIVACY_SUMMARY in cell(notebook, "form")
+    landing = (ROOT / "docs" / "index.html").read_text()
+    assert 'href="privacy.html"' in landing
+    assert "not be shared or used for marketing without your separate consent" in " ".join(landing.split())
+    app_page = (ROOT / "app" / "static" / "index.html").read_text()
+    assert app_page.count('href="/privacy"') == 2  # next to the fields and in the footer

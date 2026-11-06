@@ -43,12 +43,15 @@ def test_derived_values():
 
 
 def test_submission_cleans_name_and_email_and_keeps_them_out_of_the_cache_key():
-    sub = Submission(pdb_id="4HHB", style="surface", name="  Marie   Curie ", email=" Marie@Sorbonne.FR ")
+    sub = Submission(pdb_id="4HHB", style="surface", name="  Marie   Curie ", email=" Marie@Sorbonne.FR ",
+                     institution=" Sorbonne   University ", country="France")
     assert sub.name == "Marie Curie" and sub.email == "marie@sorbonne.fr"
+    assert sub.institution == "Sorbonne University" and sub.country == "France"
     req = sub.render_request()
     assert type(req) is RenderRequest and req.style == "surface"
     assert sub.cache_key() == req.cache_key() == RenderRequest(pdb_id="4hhb", style="surface").cache_key()
-    other = Submission(pdb_id="4hhb", style="surface", name="Someone Else", email="x@y.org")
+    other = Submission(pdb_id="4hhb", style="surface", name="Someone Else", email="x@y.org",
+                       institution="Elsewhere", country="India")
     assert other.cache_key() == sub.cache_key()
 
 
@@ -68,7 +71,16 @@ def test_submission_cleans_name_and_email_and_keeps_them_out_of_the_cache_key():
 )
 def test_submission_rejects_bad_visitor_details(name, email):
     with pytest.raises(ValidationError):
-        Submission(pdb_id="4hhb", name=name, email=email)
+        Submission(pdb_id="4hhb", name=name, email=email, institution="IISc", country="India")
+
+
+@pytest.mark.parametrize(
+    "institution, country",
+    [("", "India"), ("IISc", ""), ("=SUM(1)", "India"), ("IISc", "+India"), ("I" * 201, "India"), ("IISc", "C" * 81)],
+)
+def test_submission_rejects_bad_institution_or_country(institution, country):
+    with pytest.raises(ValidationError):
+        Submission(pdb_id="4hhb", name="Ada", email="a@b.org", institution=institution, country=country)
 
 
 def test_share_query_round_trips_through_the_form_names():
