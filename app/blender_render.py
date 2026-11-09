@@ -19,7 +19,14 @@ import time
 from pathlib import Path
 
 from app import about
-from app.options import ATOMIC_STYLES, BACKBONE_STYLES, BACKGROUND_RGB
+from app.options import (
+    ATOMIC_STYLES,
+    BACKBONE_STYLES,
+    BACKGROUND_RGB,
+    CHAIN_COLORS,
+    NON_POLYMER_RAINBOW_COLOR,
+    RAINBOW_COLORS,
+)
 
 # Non-polymer, non-water atoms: ligands, cofactors, ions.
 LIGAND_SELECTION = "not protein and not nucleic and not water"
@@ -41,16 +48,86 @@ def _material(mn, name: str):
     }[name]()
 
 
+# Per-atom colour attributes computed here (see chain_colors and rainbow_colors).
+CHAIN_COLOR_ATTRIBUTE = "rtm_chain_color"
+RAINBOW_ATTRIBUTE = "rtm_rainbow"
+
+
 def _color(name: str):
     from molecularnodes.nodes import geometry as mg
+    from nodebpy import geometry as g
 
     return {
-        "default": None,  # keep Molecular Nodes' own per-chain / element colours
-        "rainbow": lambda: mg.ColorRainbow(),
+        "default": None,  # the "Color" attribute: carbons by chain, other atoms by element
+        "rainbow": RAINBOW_ATTRIBUTE,  # an attribute name: Molecular Nodes reads it as the colour
         "secondary_structure": lambda: mg.ColorSecondaryStructure(),
-        # Goodsell needs a base colour: soft per-chain colours, carbons darkened.
-        "goodsell": lambda: mg.ColorGoodsell(color=mg.RandomColor(mg.ChainID(), 3)),
+        # Goodsell: every atom in its chain's colour (the same as "By chain"), carbons darkened.
+        "goodsell": lambda: mg.ColorGoodsell(color=g.NamedAttribute.color(CHAIN_COLOR_ATTRIBUTE).o.attribute),
     }[name]
+
+
+def chain_colors(chain_ids):
+    """Each atom's chain colour from CHAIN_COLORS, as linear RGBA (Blender's colour space).
+
+    Chains take the colours in the order of their sorted IDs; the 3D preview
+    (app/static/preview.js) does the same, so both show the same colours.
+    """
+    import numpy as np
+
+    palette = [srgb_to_linear(hex_color) + (1.0,) for hex_color in CHAIN_COLORS]
+    ids, index = np.unique(np.asarray(chain_ids).astype(str), return_inverse=True)
+    table = np.array([palette[i % len(palette)] for i in range(len(ids))])
+    return table[index.reshape(-1)]
+
+
+def rainbow_colors(chain_ids, res_ids, polymer):
+    """Each atom's "Rainbow" colour, as linear RGBA.
+
+    Along each chain's protein or nucleic acid residues, from RAINBOW_COLORS[0] at the
+    lowest residue number to the last colour at the highest, blended in sRGB as the 3D
+    preview does (app/static/preview.js). Other atoms are grey.
+    """
+    import numpy as np
+
+    chain_ids = np.asarray(chain_ids).astype(str)
+    res_ids = np.asarray(res_ids, dtype=float)
+    polymer = np.asarray(polymer, dtype=bool)
+    t = np.zeros(len(res_ids))
+    for chain in np.unique(chain_ids[polymer]):
+        sel = polymer & (chain_ids == chain)
+        low, high = res_ids[sel].min(), res_ids[sel].max()
+        t[sel] = (res_ids[sel] - low) / (high - low) if high > low else 0.0
+    stops = np.array([[int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)] for h in RAINBOW_COLORS])
+    positions = np.linspace(0, 1, len(stops))
+    srgb = np.stack([np.interp(t, positions, stops[:, c]) for c in range(3)], axis=1)
+    grey = [int(NON_POLYMER_RAINBOW_COLOR[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    srgb[~polymer] = grey
+    linear = np.where(srgb <= 0.04045, srgb / 12.92, ((srgb + 0.055) / 1.055) ** 2.4)
+    return np.concatenate([linear, np.ones((len(linear), 1))], axis=1)
+
+
+def srgb_to_linear(hex_color: str) -> tuple[float, float, float]:
+    channels = (int(hex_color[i:i + 2], 16) / 255 for i in (1, 3, 5))
+    return tuple(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in channels)
+
+
+def apply_chain_colors(mol, color: str) -> None:
+    """Colour chains with CHAIN_COLORS instead of Molecular Nodes' own hues.
+
+    Molecular Nodes' "Color" attribute (used by "By chain" and by ligands drawn over
+    a cartoon) keeps carbons by chain and other elements in their usual colours.
+    """
+    colors = chain_colors(mol.universe.atoms.chainIDs)
+    current = mol.named_attribute("Color")
+    carbon = mol.named_attribute("atomic_number") == 6
+    current[carbon] = colors[carbon]
+    mol.store_named_attribute(current, "Color", atype="FLOAT_COLOR")
+    if color == "goodsell":
+        mol.store_named_attribute(colors, CHAIN_COLOR_ATTRIBUTE, atype="FLOAT_COLOR")
+    elif color == "rainbow":
+        polymer = mol.named_attribute("is_peptide") | mol.named_attribute("is_nucleic")
+        rainbow = rainbow_colors(mol.universe.atoms.chainIDs, mol.named_attribute("res_id"), polymer)
+        mol.store_named_attribute(rainbow, RAINBOW_ATTRIBUTE, atype="FLOAT_COLOR")
 
 
 def render(spec: dict) -> dict:
@@ -69,6 +146,7 @@ def render(spec: dict) -> dict:
 
     mol = mn.Molecule.load(spec["structure_path"])
     n_atoms = mol.universe.atoms.n_atoms
+    apply_chain_colors(mol, spec["color"])
 
     copies = 1
     if spec["assembly"]:

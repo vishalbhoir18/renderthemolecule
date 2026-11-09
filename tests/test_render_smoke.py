@@ -42,6 +42,8 @@ def colourful_fraction(img) -> float:
     "options",
     [
         {"style": "cartoon", "background": "white"},
+        {"style": "cartoon", "color": "rainbow", "background": "white"},
+        {"style": "surface", "color": "goodsell", "background": "white"},
         {"style": "spheres", "color": "goodsell", "material": "flat", "background": "transparent"},
         # Point-cloud spheres lost their material when instanced over an assembly.
         {"style": "spheres", "assembly": True, "background": "white"},
