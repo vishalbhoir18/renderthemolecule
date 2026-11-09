@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from pydantic import ValidationError
 
@@ -96,6 +98,12 @@ def test_option_lists_cover_every_choice_with_valid_defaults():
         assert data["defaults"][field] in values
     assert data["defaults"]["ligands"] is True
     assert data["defaults"]["assembly"] is False
+    # Chain colours shared by Blender and the 3D preview.
+    colors = data["chain_colors"]
+    assert len(colors) >= 6 and len(set(colors)) == len(colors)
+    assert all(re.fullmatch(r"#[0-9A-F]{6}", c) for c in colors)
+    assert len(data["rainbow_colors"]) % 2 == 1  # an odd count: the middle of a chain hits a stop
+    assert all(re.fullmatch(r"#[0-9A-F]{6}", c) for c in [*data["rainbow_colors"], data["non_polymer_rainbow_color"]])
 
 
 VIEW = {"position": [149.634, 50.82, 142.5701], "target": [105.44, -18.82, 186.16],
@@ -124,9 +132,16 @@ def test_a_camera_replaces_the_viewpoint_and_changes_the_cache_key():
     assert "cam=" not in plain.share_query()
 
 
-def test_requests_without_a_camera_keep_their_cache_keys():
-    # Images rendered before cameras existed stay valid (RENDER_VERSION 3).
-    assert RenderRequest(pdb_id="4hhb").cache_key() == "cb01de97d3b9dab7393713fe947f416d484302fb5945389ec2be2280b6684223"
+def test_requests_without_a_camera_hash_only_their_options():
+    import hashlib
+    import json
+
+    from app.options import RENDER_VERSION
+
+    req = RenderRequest(pdb_id="4hhb")
+    options = req.model_dump(exclude={"camera"})
+    expected = hashlib.sha256(json.dumps({"v": RENDER_VERSION, **options}, sort_keys=True).encode()).hexdigest()
+    assert req.cache_key() == expected
 
 
 @pytest.mark.parametrize(

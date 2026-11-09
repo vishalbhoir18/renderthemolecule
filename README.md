@@ -88,8 +88,25 @@ same cache key. The view is part of the shareable link (`cam=`), the Sheet's *Vi
 `tests/test_render_smoke.py` checks with a real render that the molecule lands where the
 camera puts it.
 
-The preview is approximate in looks (Mol*'s own cartoon and lighting), not in framing. When
-**Render this view** is off, the preset views are framed more tightly by Molecular Nodes.
+The preview is approximate in looks (Mol*'s own cartoon and lighting), not in framing or
+colour. When **Render this view** is off, the preset views are framed more tightly by
+Molecular Nodes.
+
+**Colours.** Both programs colour the same way, from constants in `app/options.py` that the
+page reads from `/api/options`:
+
+* *By chain*: chains take `CHAIN_COLORS` in the order of their IDs (A, B, C, ...), repeating
+  after the last. It is the colour-blind-safe Okabe-Ito palette (Wong, *Nature Methods* 8, 441;
+  2011). Spheres and sticks show other elements in their usual colours.
+* *Goodsell*: each chain in its colour, with carbon atoms darkened (visible on spheres, sticks
+  and surfaces; a cartoon has no atoms to darken).
+* *Rainbow*: blue to red along each chain's protein or nucleic acid, by residue number
+  (`RAINBOW_COLORS`); ligands and water grey.
+* *Secondary structure*: Molecular Nodes' colours, helices green, sheets red, loops blue.
+
+`app/blender_render.py` stores the chain and rainbow colours as per-atom attributes, converted
+to Blender's linear colour space; `app/static/preview.js` gives Mol* the same colours (its
+rainbow is a small custom colour theme). Changing a palette changes both.
 
 Measured on a 4-vCPU machine at 1280 × 720: 15–23 s per image at *Standard* quality and about
 9 s at *Draft*, plus 3–4 s of scene setup. With 2 threads, the same renders took 45–140 s.

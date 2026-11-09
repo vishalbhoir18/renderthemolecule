@@ -34,6 +34,126 @@ const Preview = (() => {
 
   const BACKGROUNDS = { white: 0xffffff, black: 0x000000, transparent: 0xffffff };
 
+  // --- Colours, as Blender draws them (app/blender_render.py) ----------------------------
+  // Molecular Nodes' colours are linear light; the viewer works in sRGB.
+  const toSrgb = (c) => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055);
+  const toLinear = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const hexOf = (rgb) => rgb.reduce((n, c) => n * 256 + Math.round(Math.min(1, Math.max(0, c)) * 255), 0);
+  const fromLinear = (rgb) => hexOf(rgb.map(toSrgb));
+  const linearOf = (hex) => [16, 8, 0].map((shift) => toLinear(((hex >> shift) & 255) / 255));
+
+  // CHAIN_COLORS, RAINBOW_COLORS and NON_POLYMER_RAINBOW_COLOR from app/options.py, via /api/options.
+  let chainColors = [0x56b4e9];
+  let rainbowColors = [0x3939e6, 0xe63939];
+  let nonPolymerColor = 0xcccccc;
+  const parseHex = (hex) => parseInt(hex.slice(1), 16);
+
+  // Molecular Nodes' "Color Goodsell" lowers the OKLab lightness of carbon atoms by 0.12.
+  function goodsellDarken(hex) {
+    const [r, g, b] = linearOf(hex);
+    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+    const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+    const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    const L = 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s - 0.12;
+    const A = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s;
+    const B = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s;
+    const l2 = (L + 0.3963377774 * A + 0.2158037573 * B) ** 3;
+    const m2 = (L - 0.1055613458 * A - 0.0638541728 * B) ** 3;
+    const s2 = (L - 0.0894841775 * A - 1.2914855480 * B) ** 3;
+    return fromLinear([
+      4.0767416621 * l2 - 3.3077115913 * m2 + 0.2309699292 * s2,
+      -1.2684380046 * l2 + 2.6097574011 * m2 - 0.3413193965 * s2,
+      -0.0041960863 * l2 - 0.7034186147 * m2 + 1.7076147010 * s2,
+    ]);
+  }
+
+  // Chains take CHAIN_COLORS in the order of their sorted (author) IDs, as in Blender; Mol*
+  // numbers chains in file order, so the list is given in that order.
+  function chainPalette(adjust = (hex) => hex) {
+    const ids = [];
+    entry.model.data.properties.structAsymMap.forEach(({ auth_id }) => {
+      if (!ids.includes(auth_id)) ids.push(auth_id);
+    });
+    const sorted = [...ids].sort();
+    const colors = ids.map((id) => adjust(chainColors[sorted.indexOf(id) % chainColors.length]));
+    return { name: "colors", params: { list: { kind: "set", colors } } };
+  }
+
+  // "Rainbow", as Blender computes it (rainbow_colors in app/blender_render.py): along each
+  // chain's protein or nucleic acid, by residue number, through RAINBOW_COLORS (blended in
+  // sRGB); ligands and water grey. Mol* has no such theme, so it is added here.
+  const RAINBOW_THEME = "rtm-rainbow";
+
+  function rainbowAt(t) {
+    const x = Math.min(1, Math.max(0, t)) * (rainbowColors.length - 1);
+    const i = Math.min(Math.floor(x), rainbowColors.length - 2);
+    const f = x - i;
+    const [a, b] = [rainbowColors[i], rainbowColors[i + 1]];
+    return [16, 8, 0].reduce((n, shift) => {
+      const mix = ((a >> shift) & 255) * (1 - f) + ((b >> shift) & 255) * f;
+      return n * 256 + Math.round(mix);
+    }, 0);
+  }
+
+  function registerRainbowTheme(plugin) {
+    const { StructureElement, StructureProperties: P, Bond } = window.molstar.lib.structure;
+    const provider = {
+      name: RAINBOW_THEME,
+      label: "Rainbow (as rendered)",
+      category: "Residue Property",
+      getParams: () => ({}),
+      defaultValues: {},
+      isApplicable: (ctx) => Boolean(ctx.structure),
+      factory(ctx, props) {
+        // Lowest and highest residue number of the polymer residues in each chain.
+        const ranges = new Map();
+        for (const model of ctx.structure.root.models) {
+          const h = model.atomicHierarchy;
+          for (let r = 0; r < h.residues._rowCount; r++) {
+            const c = h.chainAtomSegments.index[h.residueAtomSegments.offsets[r]];
+            const entity = model.entities.getEntityIndex(h.chains.label_entity_id.value(c));
+            if (model.entities.data.type.value(entity) !== "polymer") continue;
+            const chain = h.chains.auth_asym_id.value(c);
+            const number = h.residues.auth_seq_id.value(r);
+            const [low, high] = ranges.get(chain) || [number, number];
+            ranges.set(chain, [Math.min(low, number), Math.max(high, number)]);
+          }
+        }
+        const colorOf = (l) => {
+          if (P.entity.type(l) !== "polymer") return nonPolymerColor;
+          const [low, high] = ranges.get(P.chain.auth_asym_id(l)) || [0, 0];
+          return rainbowAt(high > low ? (P.residue.auth_seq_id(l) - low) / (high - low) : 0);
+        };
+        const color = (location) => {
+          if (StructureElement.Location.is(location)) return colorOf(location);
+          if (Bond.isLocation(location)) {
+            const { aStructure, aUnit, aIndex } = location;
+            return colorOf(StructureElement.Location.create(aStructure, aUnit, aUnit.elements[aIndex]));
+          }
+          return nonPolymerColor;
+        };
+        return { factory: provider.factory, granularity: "group", color, props, description: "Rainbow along each chain" };
+      },
+    };
+    plugin.representation.structure.themes.colorThemeRegistry.add(provider);
+  }
+
+  // Molecular Nodes' secondary-structure colours: helices green, sheets red, loops blue.
+  const HELIX = fromLinear([0.16202937, 0.6239606, 0.19461784]);
+  const SHEET = fromLinear([1.0, 0.1499598, 0.1499598]);
+  const LOOP = fromLinear([0.17144114, 0.3662526, 0.799103]);
+  const OTHER = fromLinear([0.8, 0.8, 0.8]);
+  const SECONDARY_STRUCTURE = {
+    alphaHelix: HELIX, threeTenHelix: HELIX, piHelix: HELIX, betaStrand: SHEET,
+    betaTurn: LOOP, coil: LOOP, bend: LOOP, turn: LOOP, dna: OTHER, rna: OTHER, carbohydrate: OTHER,
+  };
+
+  // Carbons by chain, other elements in their usual colours.
+  const byElement = () => ({
+    color: "element-symbol",
+    colorParams: { carbonColor: { name: "chain-id", params: { asymId: "auth", palette: chainPalette() } } },
+  });
+
   let viewer = null;
   let loading = null;
   let element = null;
@@ -100,6 +220,7 @@ const Preview = (() => {
         [window.molstar.lib.plugin.PluginConfig.Viewport.ShowXR, "never"],
       ],
     });
+    registerRainbowTheme(viewer.plugin);
     viewer.plugin.canvas3d.setProps({
       camera: { mode: "perspective", helper: { axes: { name: "off", params: {} } } },
       cameraFog: { name: "off", params: {} },  // Blender adds no fog either
@@ -209,11 +330,23 @@ const Preview = (() => {
 
   function colouring(color, style) {
     switch (color) {
-      case "rainbow": return { color: "sequence-id" };
-      case "secondary_structure": return { color: "secondary-structure" };
-      case "goodsell": return { color: "illustrative" };
-      // By chain; spheres and sticks also show other elements in their usual colours.
-      default: return { color: BACKBONE_STYLES.has(style) || style === "surface" ? "chain-id" : "element-symbol" };
+      case "rainbow":
+        return { color: RAINBOW_THEME };
+      case "secondary_structure":
+        return {
+          color: "secondary-structure",
+          colorParams: { saturation: 0, lightness: 0, colors: { name: "custom", params: SECONDARY_STRUCTURE } },
+        };
+      case "goodsell": {
+        // Each chain in its colour. Blender darkens carbon atoms (most atoms), which shows on
+        // spheres, sticks and surfaces but not on cartoons.
+        const adjust = BACKBONE_STYLES.has(style) ? undefined : goodsellDarken;
+        return { color: "chain-id", colorParams: { asymId: "auth", palette: chainPalette(adjust) } };
+      }
+      default:  // cartoons and surfaces in the chain colour; spheres and sticks by element
+        return BACKBONE_STYLES.has(style) || style === "surface"
+          ? { color: "chain-id", colorParams: { asymId: "auth", palette: chainPalette() } }
+          : byElement();
     }
   }
 
@@ -250,7 +383,7 @@ const Preview = (() => {
       const ligands = await component(script(LIGANDS), "ligands");
       if (ligands) {
         made.push(ligands);
-        await builder.representation.addRepresentation(ligands, { type: "ball-and-stick", color: "element-symbol" });
+        await builder.representation.addRepresentation(ligands, { type: "ball-and-stick", ...byElement() });
       }
     }
     // Remove the previous drawing only now, so the view does not jump.
@@ -344,6 +477,12 @@ const Preview = (() => {
       if (!viewer || !entry) return;
       frameViewpoint(viewpoint, durationMs);
       if (shown) shown.viewpoint = viewpoint;
+    },
+    /** The colours shared with Blender: the /api/options response. */
+    setColors(options) {
+      if (options.chain_colors?.length) chainColors = options.chain_colors.map(parseHex);
+      if (options.rainbow_colors?.length > 1) rainbowColors = options.rainbow_colors.map(parseHex);
+      if (options.non_polymer_rainbow_color) nonPolymerColor = parseHex(options.non_polymer_rainbow_color);
     },
     /** Drop the visitor's view: the next update shows the preset view again. */
     forgetView() {

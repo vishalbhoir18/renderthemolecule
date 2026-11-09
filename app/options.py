@@ -16,7 +16,16 @@ from urllib.parse import urlencode
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # Bump when the look of renders changes, so cached images are not reused.
-RENDER_VERSION = "3"  # 2: credit line and PNG metadata; 3: DOI in metadata
+RENDER_VERSION = "4"  # 2: credit line and PNG metadata; 3: DOI in metadata; 4: chain colours
+
+# Chain colours for "By chain" and "Goodsell", given to chains in order of their IDs and
+# repeated after the last: the colour-blind-safe Okabe-Ito palette (Wong, Nature Methods 8,
+# 441; 2011), black left out. Blender and the 3D preview both use this list.
+CHAIN_COLORS = ["#56B4E9", "#E69F00", "#009E73", "#CC79A7", "#0072B2", "#D55E00", "#F0E442"]
+# "Rainbow": blue at the start of each chain to red at its end, by residue number along
+# the chain's protein or nucleic acid (blended evenly between these colours, in sRGB).
+RAINBOW_COLORS = ["#3939E6", "#398FE6", "#39E6E6", "#39E68F", "#39E639", "#8FE639", "#E6E639", "#E68F39", "#E63939"]
+NON_POLYMER_RAINBOW_COLOR = "#CCCCCC"  # ligands and water, in spheres, sticks and surfaces
 
 # Classic IDs (4HHB) and the extended wwPDB format (pdb_00004hhb).
 PDB_ID_RE = re.compile(r"^(?:[1-9][a-z0-9]{3}|pdb_[0-9a-z]{8})$")
@@ -351,4 +360,7 @@ def option_lists() -> dict:
             for field, labels in LABELS.items()
         },
         "defaults": defaults,
+        "chain_colors": CHAIN_COLORS,
+        "rainbow_colors": RAINBOW_COLORS,
+        "non_polymer_rainbow_color": NON_POLYMER_RAINBOW_COLOR,
     }

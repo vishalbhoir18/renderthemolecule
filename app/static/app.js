@@ -31,7 +31,9 @@ function writeStored(values, key = STORAGE_KEY) {
 
 async function loadOptions() {
   const resp = await fetch("/api/options");
-  const { choices, defaults } = await resp.json();
+  const data = await resp.json();
+  const { choices, defaults } = data;
+  Preview.setColors(data);  // so the preview's colours are Blender's
   const params = new URLSearchParams(location.search);
   const stored = readStored();
   const visitor = readStored(VISITOR_KEY);
