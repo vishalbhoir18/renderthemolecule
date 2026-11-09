@@ -10,7 +10,7 @@ import shutil
 import pytest
 
 from app.errors import UserError
-from app.options import RenderRequest
+from app.options import Camera, RenderRequest
 from app.renderer import run_blender
 from app.storage import fetch_structure
 
@@ -73,3 +73,44 @@ def test_atom_limit_is_reported_to_user(settings, structure, tmp_path):
     request = RenderRequest(pdb_id="1crn", resolution="800x800", quality="draft")
     with pytest.raises(UserError, match="limit"):
         run_blender(request, structure, tmp_path / "out.png", tiny)
+
+
+def test_render_this_view_puts_the_molecule_where_the_preview_did(settings, structure, tmp_path):
+    """A camera from the 3D preview is reproduced: position, aim, up direction and vertical field of view."""
+    import biotite.structure.io.pdbx as pdbx
+    import numpy as np
+
+    coords = pdbx.get_structure(pdbx.BinaryCIFFile.read(str(structure)), model=1).coord
+    centre = coords.mean(axis=0)
+    radius = float(np.linalg.norm(coords - centre, axis=1).max())
+    back = np.array([0.3, -0.5, 0.81]) / np.linalg.norm([0.3, -0.5, 0.81])
+    forward = -back
+    right = np.cross(forward, [0, 0, 1])
+    right /= np.linalg.norm(right)
+    up = np.cross(right, forward)
+    # Aim right of and above the molecule, so it should appear left of and below the centre.
+    target = centre + 0.25 * radius * right + 0.15 * radius * up
+    position = target + 3 * radius * back
+    camera = Camera(position=position.tolist(), target=target.tolist(), up=[0, 0, 1], fov=40)
+    request = RenderRequest(pdb_id="1crn", resolution="1280x720", quality="draft", background="transparent",
+                            credit=False, camera=camera)
+    out = tmp_path / "out.png"
+    run_blender(request, structure, out, settings)
+
+    with PIL.open(out) as img:
+        alpha = np.asarray(img)[..., 3].astype(float)
+    height, width = alpha.shape
+    ys, xs = np.nonzero(alpha)
+    weights = alpha[ys, xs]
+    seen = np.array([(xs * weights).sum(), (ys * weights).sum()]) / weights.sum()
+
+    # Where a perspective camera with this vertical field of view projects the centre.
+    d = centre - np.array(camera.position)
+    depth, tan = d @ forward, np.tan(np.radians(camera.fov) / 2)
+    expected = np.array([
+        (1 + (d @ right) / (depth * tan * width / height)) / 2 * width,
+        (1 - (d @ up) / (depth * tan)) / 2 * height,
+    ])
+    assert expected[0] < 0.45 * width and expected[1] > 0.55 * height  # a real offset to detect
+    assert abs(seen[0] - expected[0]) < 0.025 * width
+    assert abs(seen[1] - expected[1]) < 0.025 * height
