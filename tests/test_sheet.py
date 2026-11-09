@@ -51,6 +51,14 @@ def test_record_row():
     assert cached["cached"] == "yes" and cached["render_s"] == ""
 
 
+def test_record_row_for_a_view_from_the_3d_preview():
+    req = RenderRequest(pdb_id="1f2n", camera="149.63,50.82,142.57,105.44,-18.82,186.16,0,0,1,45")
+    job = Job(req, req.cache_key(), "client", status="done", started_at=1.0, finished_at=2.0)
+    row = sheet.record_row(job, Submitter("Ada", "a@b.org", "https://x", 1.0, institution="I", country="C"))
+    assert row["viewpoint"] == "3D preview"
+    assert row["link"].endswith("&cam=149.63%2C50.82%2C142.57%2C105.44%2C-18.82%2C186.16%2C0%2C0%2C1%2C45")
+
+
 class FakeResponse:
     def __init__(self, payload, status=200):
         self.payload, self.status_code = payload, status

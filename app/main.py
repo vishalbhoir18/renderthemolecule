@@ -12,17 +12,19 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
 from . import about
 from .config import Settings
-from .errors import QueueFull, TooManyJobs
+from .errors import QueueFull, TooManyJobs, UserError
 from .jobs import Job, JobManager, Submitter
 from .options import RenderRequest, Submission, option_lists
 from .renderer import RenderFn, make_renderer
 from .sheet import SheetRecorder, record_row
+from .storage import fetch_structure
 
 log = logging.getLogger(__name__)
 
@@ -88,6 +90,8 @@ def create_app(
 
     app = FastAPI(title="Render the Molecule", lifespan=lifespan, docs_url="/api/docs", redoc_url=None)
     app.state.manager = manager
+    # The 3D viewer's script and structure files shrink to a quarter (PNGs are skipped).
+    app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=6)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
@@ -128,6 +132,24 @@ def create_app(
             "legend": about.legend_sentence(code, versions),
             "references": about.references(code, _base_url(request, settings), versions),
         }
+
+    @app.get("/api/structure/{pdb_id}")
+    def structure(pdb_id: str):
+        """The entry's structure file (BinaryCIF), for the 3D preview.
+
+        Served from this server's download cache, so the preview needs no other
+        site, and the render that usually follows does not download it again.
+        """
+        try:
+            code = RenderRequest(pdb_id=pdb_id).pdb_id
+        except ValidationError:
+            return _error(422, "Not a valid PDB ID.")
+        try:
+            path = fetch_structure(code, settings)
+        except UserError as exc:
+            return _error(404, str(exc))
+        return FileResponse(path, media_type="application/octet-stream",
+                            headers={"Cache-Control": "public, max-age=86400"})
 
     @app.post("/api/render", status_code=202)
     def submit(body: Submission, request: Request):

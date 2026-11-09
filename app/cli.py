@@ -51,6 +51,12 @@ def build_parser() -> argparse.ArgumentParser:
         parser.add_argument(
             f"--{field}", action=argparse.BooleanOptionalAction, default=defaults[field].default
         )
+    parser.add_argument(
+        "--camera", metavar="PX,PY,PZ,TX,TY,TZ,UX,UY,UZ,FOV",
+        help="exact view instead of --viewpoint: camera position, target and up direction "
+             "(ångström, structure-file coordinates) and vertical field of view in degrees; "
+             "the cam= value of a web-app link",
+    )
     parser.add_argument("--out", type=Path, default=Path("render-output"), help="output folder")
     parser.add_argument("--source", default="Colab", help="value of the Sheet's Source column")
     parser.add_argument(

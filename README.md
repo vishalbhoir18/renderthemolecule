@@ -22,7 +22,9 @@ No Blender installation is needed on the visitor's side; everything runs on the 
 Options: style (cartoon, ribbon, surface, spheres, ball-and-stick, sticks),
 colour (by chain, rainbow, secondary structure, Goodsell), material, viewpoint,
 image size, quality, white/black/transparent background, ligand highlighting
-and biological assemblies. Visitors give their name and email, and every render
+and biological assemblies. An interactive 3D preview ([Mol*](https://molstar.org)) shows the
+molecule as soon as an ID is typed: turn and zoom it, and **Render this view** makes Blender
+render exactly that view. Visitors give their name and email, and every render
 can be recorded in a private Google Sheet (see below). Each image credits its
 sources and comes with a ready-made citation.
 
@@ -65,6 +67,29 @@ Browser ──▶ FastAPI (app/main.py)
   memory. One worker is right anyway: Cycles already uses every CPU core.
 * **Content-addressed cache.** Each image is named by a hash of its options, so a repeated
   request (or a shared link) is served instantly.
+
+### 3D preview and "Render this view"
+
+The page loads [Mol*](https://molstar.org) (MIT licence; the viewer build is in
+`app/static/vendor/molstar`, served by the app itself) the first time a PDB ID is entered. The
+structure comes from `GET /api/structure/{id}`, the same download cache the renders use, so
+the browser contacts no other site and the render that follows does not download it again.
+`app/static/preview.js` mirrors the chosen style, colour, ligands, assembly and background,
+keeps the viewer at the image's aspect ratio, and turns to the selected preset view.
+
+Turning or zooming the molecule ticks **Render this view**. The camera is then sent with the
+request as `camera`: position, target and up direction in ångström, in the structure file's
+coordinates, and the vertical field of view in degrees. Both programs keep those coordinates
+(Molecular Nodes scales them by 0.1), so `place_camera` in `app/blender_render.py` sets the
+Blender camera directly: same position and orientation, vertical sensor fit, same vertical
+angle. Values are rounded (0.01 Å, 4 decimals for the direction), so the same view gives the
+same cache key. The view is part of the shareable link (`cam=`), the Sheet's *View* column says
+"3D preview", and the command line accepts it as `--camera` (the same 10 numbers).
+`tests/test_render_smoke.py` checks with a real render that the molecule lands where the
+camera puts it.
+
+The preview is approximate in looks (Mol*'s own cartoon and lighting), not in framing. When
+**Render this view** is off, the preset views are framed more tightly by Molecular Nodes.
 
 Measured on a 4-vCPU machine at 1280 × 720: 15–23 s per image at *Standard* quality and about
 9 s at *Draft*, plus 3–4 s of scene setup. With 2 threads, the same renders took 45–140 s.
@@ -278,7 +303,10 @@ All settings are environment variables (see `app/config.py`).
 
 ## API
 
-* `POST /api/render` with JSON such as `{"pdb_id": "4HHB", "style": "surface", "name": "Ada Lovelace", "email": "ada@example.org"}` returns a job (HTTP 202).
+* `POST /api/render` with JSON such as `{"pdb_id": "4HHB", "style": "surface", "name": "Ada Lovelace", "email": "ada@example.org", "institution": "University of London", "country": "United Kingdom"}` returns a job (HTTP 202).
+  An optional `"camera": {"position": [x, y, z], "target": [x, y, z], "up": [x, y, z], "fov": 45}`
+  (ångström, structure-file coordinates; vertical field of view in degrees) renders that exact view.
+* `GET /api/structure/{id}` returns the entry's BinaryCIF file from the server's cache (used by the 3D preview).
 * `GET /api/jobs/{id}` returns `status` (`queued` / `running` / `done` / `failed`), `jobs_ahead`, `image_url` and `error`.
 * `GET /api/options` lists every choice and its default; interactive docs are at `/api/docs`.
 
@@ -357,5 +385,6 @@ the License, or (at your option) any later version. It is distributed in the hop
 be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE. See [`LICENSE`](LICENSE) for the full text.
 
-It builds on Molecular Nodes (GPL-3.0) and Blender (GPL). Structure data from the PDB is free
-of usage restrictions, but please cite the entries you render.
+It builds on Molecular Nodes (GPL-3.0) and Blender (GPL). The 3D preview ships the Mol* viewer
+(MIT licence, copyright Mol* contributors; `app/static/vendor/molstar/LICENSE`). Structure data
+from the PDB is free of usage restrictions, but please cite the entries you render.

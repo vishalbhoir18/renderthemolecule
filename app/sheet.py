@@ -41,7 +41,7 @@ def record_row(job: Job, submitter: Submitter) -> dict:
         "style": req.style,
         "color": req.color,
         "material": req.material,
-        "viewpoint": req.viewpoint,
+        "viewpoint": "3D preview" if req.camera else req.viewpoint,  # the link holds the exact view
         "resolution": req.resolution,
         "quality": req.quality,
         "background": req.background,

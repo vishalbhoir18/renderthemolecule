@@ -13,6 +13,7 @@ Unexpected failures exit non-zero with a traceback on stderr.
 from __future__ import annotations
 
 import json
+import math
 import sys
 import time
 from pathlib import Path
@@ -22,6 +23,9 @@ from app.options import ATOMIC_STYLES, BACKBONE_STYLES, BACKGROUND_RGB
 
 # Non-polymer, non-water atoms: ligands, cofactors, ions.
 LIGAND_SELECTION = "not protein and not nucleic and not water"
+# Molecular Nodes places atoms at their file coordinates (ångström) times this,
+# in an object at the origin with no rotation.
+WORLD_SCALE = 0.1
 
 
 class UserFacingError(Exception):
@@ -110,7 +114,10 @@ def render(spec: dict) -> dict:
                 assembly=spec["assembly"],
             )
 
-    canvas.look_at(mol, viewpoint=spec["viewpoint"])
+    if spec.get("camera"):
+        place_camera(canvas.scene.camera, spec["camera"])
+    else:
+        canvas.look_at(mol, viewpoint=spec["viewpoint"])
     timings["setup_s"] = round(time.monotonic() - t0, 1)
 
     output = Path(spec["output_path"])
@@ -122,6 +129,47 @@ def render(spec: dict) -> dict:
     finish_image(raw, output, spec, about.versions())
     raw.unlink(missing_ok=True)
     return {"atoms": estimated, **timings}
+
+
+def camera_matrix(camera: dict, world_scale: float = WORLD_SCALE) -> list[list[float]]:
+    """4×4 world matrix of a Blender camera matching a Mol* camera.
+
+    A Blender camera looks down its local -Z with +Y up, so its matrix holds
+    the columns (right, up, -forward, position).
+    """
+    position = [x * world_scale for x in camera["position"]]
+    target = [x * world_scale for x in camera["target"]]
+    forward = _normalized([t - p for t, p in zip(target, position)])
+    right = _normalized(_cross(forward, camera["up"]))
+    up = _cross(right, forward)
+    columns = [right, up, [-x for x in forward], position]
+    return [[columns[c][r] for c in range(4)] for r in range(3)] + [[0.0, 0.0, 0.0, 1.0]]
+
+
+def place_camera(camera_object, camera: dict) -> None:
+    """Point the scene camera exactly as the 3D preview did."""
+    from mathutils import Matrix
+
+    camera_object.matrix_world = Matrix(camera_matrix(camera))
+    data = camera_object.data
+    data.type = "PERSP"
+    data.shift_x = data.shift_y = 0.0
+    # Mol*'s field of view is vertical; fitting the sensor vertically keeps
+    # the same framing whatever the image's width.
+    data.sensor_fit = "VERTICAL"
+    data.angle_y = math.radians(camera["fov"])
+    distance = math.dist(camera["position"], camera["target"]) * WORLD_SCALE
+    data.clip_start = 0.01
+    data.clip_end = max(data.clip_end, distance * 20)
+
+
+def _cross(a, b) -> list[float]:
+    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+
+
+def _normalized(v) -> list[float]:
+    length = math.hypot(*v)
+    return [x / length for x in v]
 
 
 def finish_image(raw: Path, output: Path, spec: dict, versions: dict[str, str]) -> None:
