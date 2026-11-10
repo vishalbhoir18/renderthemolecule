@@ -39,13 +39,47 @@ class UserFacingError(Exception):
     pass
 
 
+# Lighting, set to look as lifelike as the 3D preview. Three sun lights turn with the camera,
+# as Mol*'s light does, so every view is lit alike: (pitch, yaw) in degrees away from the view
+# direction, and strength. Key light from the upper left, fill from the right, rim from behind.
+LIGHTS = ((-35, -30, 3.5), (10, 50, 1.0), (210, 20, 1.5))
+WORLD_STRENGTH = 0.6  # soft light from all around, so shadows are not black
+GLOSSY_ROUGHNESS = 0.35  # crisper highlights than Molecular Nodes' 0.5
+# Shows colours as chosen. Blender's default (AgX) turns strong colours pastel.
+VIEW_TRANSFORM = "Khronos PBR Neutral"
+
+
 def _material(mn, name: str):
+    if name == "default":
+        return mn.material.Default(roughness=GLOSSY_ROUGHNESS)
     return {
         "ambient_occlusion": mn.material.AmbientOcclusion,
-        "default": mn.material.Default,
         "flat": mn.material.Flat,
         "squishy": mn.material.Squishy,
     }[name]()
+
+
+def light_scene(canvas) -> None:
+    """Studio lighting relative to the camera, and colour management (see LIGHTS).
+
+    "Ambient occlusion" and "Flat" are self-lit and only take the colour management.
+    """
+    import bpy
+    from mathutils import Euler
+
+    canvas.scene.view_settings.view_transform = VIEW_TRANSFORM
+    canvas.scene.view_settings.look = "None"
+    bpy.context.view_layer.update()  # so the camera's matrix reflects look_at
+    camera = canvas.scene.camera.matrix_world.to_3x3().normalized()
+    suns = sorted((o for o in canvas.scene.objects if o.type == "LIGHT"), key=lambda o: o.name)
+    for sun, (pitch, yaw, energy) in zip(suns, LIGHTS):
+        rotation = camera @ Euler((math.radians(pitch), math.radians(yaw), 0)).to_matrix()
+        sun.matrix_world = rotation.to_4x4()
+        sun.data.energy = energy
+    world = canvas.scene.world
+    for node in world.node_tree.nodes if world and world.node_tree else ():
+        if node.type == "GROUP" and "HDRI Strength" in node.inputs:
+            node.inputs["HDRI Strength"].default_value = WORLD_STRENGTH
 
 
 # Per-atom colour attributes computed here (see chain_colors and rainbow_colors).
@@ -196,6 +230,7 @@ def render(spec: dict) -> dict:
         place_camera(canvas.scene.camera, spec["camera"])
     else:
         canvas.look_at(mol, viewpoint=spec["viewpoint"])
+    light_scene(canvas)
     timings["setup_s"] = round(time.monotonic() - t0, 1)
 
     output = Path(spec["output_path"])
