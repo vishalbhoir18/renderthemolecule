@@ -61,6 +61,13 @@ Browser ──▶ FastAPI (app/main.py)
   `bpy` package. There is no Blender binary to install and no add-on to enable.
 * **Cycles, not EEVEE.** Without a GPU, EEVEE runs through software OpenGL. On a 4-vCPU test
   machine it was slower than Cycles at 32 samples with the CPU denoiser (29 s vs 20 s).
+* **Lighting.** Three sun lights are placed relative to the camera, as Mol*'s light is (key
+  from the upper left, fill from the right, rim from behind), so every view, including one
+  chosen in the 3D preview, is lit alike. The default material is *Glossy (lit)*; *Ambient
+  occlusion* is evenly self-lit and looks flatter. Colours go through Blender's
+  "Khronos PBR Neutral" view transform, which keeps them as chosen (the default, AgX, turns
+  strong colours pastel). The settings are `LIGHTS`, `WORLD_STRENGTH`, `GLOSSY_ROUGHNESS` and
+  `VIEW_TRANSFORM` in `app/blender_render.py`.
 * **One process per render.** Blender keeps global state and can crash; a fresh process per job
   keeps the web server alive and returns all memory after every render.
 * **No Redis/Celery.** The app runs as a single container (on Modal or any Docker host), so the queue lives in

@@ -42,7 +42,7 @@ def test_record_row():
     assert sheet.ROW_KEYS[-3:] == ["source", "institution", "country"]  # appended: old rows stay aligned
     assert row["assembly"] == "yes" and row["cached"] == "no" and row["render_s"] == 21.3
     assert row["link"] == (
-        "https://x.hf.space/?id=6VXX&style=surface&color=default&material=ambient_occlusion"
+        "https://x.hf.space/?id=6VXX&style=surface&color=default&material=default"
         "&viewpoint=default&resolution=1280x720&quality=standard&background=white"
         "&ligands=1&assembly=1&credit=1"
     )

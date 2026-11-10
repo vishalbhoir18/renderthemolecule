@@ -61,7 +61,8 @@ def form_cell() -> str:
     for field in ("ligands", "assembly", "credit"):
         lines.append(f'{field} = {defaults[field].default}  #@param {{type:"boolean"}}')
     lines += [
-        '#@markdown *Colour* "default" = by chain. *Ligands*: show ligands and ions as ball-and-stick',
+        '#@markdown *Colour* "default" = by chain. *Material* "default" = glossy, lit by studio lights;',
+        '#@markdown "ambient_occlusion" = soft and evenly lit. *Ligands*: show ligands and ions as ball-and-stick',
         "#@markdown (cartoon and ribbon). *Assembly*: the whole biological complex. *Credit*: small",
         "#@markdown credit line on the image (untick for a clean figure and cite in the text).",
         "",
