@@ -9,21 +9,14 @@
  * scales them by 0.1), so a camera's position, target and up direction carry over
  * unchanged. Mol*'s field of view is vertical, which Blender matches whatever the
  * image width; the viewer is kept at the image's aspect ratio so the framing agrees.
+ *
+ * A preset view is framed as Molecular Nodes frames it when no camera is sent
+ * (framing.js), with Blender's field of view, so it needs no camera: an untouched
+ * preset view renders as shown.
  */
 const Preview = (() => {
   const SCRIPT = "/static/vendor/molstar/molstar.js";
   const STYLESHEET = "/static/vendor/molstar/molstar.css";
-
-  // Molecular Nodes' preset camera rotations (Blender XYZ Euler angles, degrees).
-  const VIEWPOINT_EULER = {
-    default: [70.402, 0, 0],
-    front: [90, 0, 0],
-    back: [90, 0, -180],
-    top: [0, 0, 0],
-    bottom: [-180, 0, 0],
-    left: [-270, 0, -90],
-    right: [-270, 0, -270],
-  };
 
   const BACKBONE_STYLES = new Set(["cartoon", "ribbon"]);
   const LARGE = 150000;  // atoms; above this a faster surface is drawn
@@ -245,31 +238,77 @@ const Preview = (() => {
     element.addEventListener("wheel", markMoved, { passive: true });
   }
 
-  // Rotation matrix for Blender XYZ Euler angles: R = Rz · Ry · Rx.
-  function eulerMatrix([x, y, z]) {
-    const [a, b, c] = [x, y, z].map((deg) => (deg * Math.PI) / 180);
-    const [ca, sa, cb, sb, cc, sc] = [Math.cos(a), Math.sin(a), Math.cos(b), Math.sin(b), Math.cos(c), Math.sin(c)];
-    return [
-      [cc * cb, cc * sb * sa - sc * ca, cc * sb * ca + sc * sa],
-      [sc * cb, sc * sb * sa + cc * ca, sc * sb * ca - cc * sa],
-      [-sb, cb * sa, cb * ca],
-    ];
-  }
-  const apply = (m, v) => m.map((row) => row[0] * v[0] + row[1] * v[1] + row[2] * v[2]);
+  const sizeOf = (resolution) => resolution.split("x").map(Number);
 
-  // Direction a preset looks in, and its up direction (a Blender camera looks down -Z, with +Y up).
-  function viewpointAxes(name) {
-    const m = eulerMatrix(VIEWPOINT_EULER[name] || VIEWPOINT_EULER.default);
-    return { forward: apply(m, [0, 0, -1]), up: apply(m, [0, 1, 0]) };
+  // What Mol* draws, for the framing: mesh vertices, sphere centres and cylinder ends grown by
+  // the largest radius (Molecular Nodes grows its spheres by their radius too), anything else
+  // by its bounding sphere.
+  function addDrawn(fit, { values, state }) {
+    if (!state.visible || !values.drawCount.ref.value) return;
+    const vertices = values.uVertexCount?.ref.value ?? 0;
+    const radius = values.padding?.ref.value ?? 0;
+    let sources;  // [coordinates, stride, count]
+    switch (values.dGeometryType?.ref.value) {
+      case "mesh":
+        sources = [[values.aPosition?.ref.value, 3, vertices]];
+        break;
+      case "spheres":  // one (x, y, z, group) per sphere, six vertices each
+        sources = [[values.tPositionGroup?.ref.value?.array, 4, vertices / 6]];
+        break;
+      case "cylinders":
+        sources = [[values.aStart?.ref.value, 3, vertices], [values.aEnd?.ref.value, 3, vertices]];
+        break;
+      default:
+        sources = [];
+    }
+    sources = sources.filter(([array, stride, count]) => array && array.length >= stride * count);
+    if (!sources.length) {
+      const { center, radius: r } = values.boundingSphere.ref.value;
+      if (r > 0) fit.add(center[0], center[1], center[2], r);
+      return;
+    }
+    const transforms = values.aTransform.ref.value;  // a column-major 4×4 matrix per instance
+    for (let k = 0; k < values.instanceCount.ref.value; k++) {
+      const m = transforms.subarray(16 * k, 16 * k + 16);
+      for (const [array, stride, count] of sources) {
+        for (let i = 0, o = 0; i < count; i++, o += stride) {
+          const x = array[o];
+          const y = array[o + 1];
+          const z = array[o + 2];
+          fit.add(
+            m[0] * x + m[4] * y + m[8] * z + m[12],
+            m[1] * x + m[5] * y + m[9] * z + m[13],
+            m[2] * x + m[6] * y + m[10] * z + m[14],
+            radius,
+          );
+        }
+      }
+    }
   }
 
-  function frameViewpoint(name, durationMs = 0) {
-    const { forward, up } = viewpointAxes(name);
+  // A preset view as Blender renders it with no camera sent: Molecular Nodes' framing of the
+  // drawn molecule (framing.js) and Blender's field of view, for an image of this size.
+  function frameViewpoint(name, resolution, durationMs = 0) {
+    const [width, height] = sizeOf(resolution);
     viewer.plugin.canvas3d.requestCameraReset({
       durationMs,
       snapshot: (scene, camera) => {
+        const fit = Framing.fitter(name, width, height);
+        for (const renderable of scene.renderables) addDrawn(fit, renderable);
+        const view = fit.camera();
         const { center, radius } = scene.boundingSphereVisible;
-        return camera.getInvariantFocus(center, radius, up, forward);
+        if (!view) {
+          const { forward, up } = Framing.viewpointAxes(name);
+          return camera.getInvariantFocus(center, radius, up, forward);
+        }
+        const offset = Math.hypot(...view.target.map((x, i) => x - center[i]));
+        return {
+          position: view.position,
+          target: view.target,
+          up: [...view.up],
+          fov: (view.fov * Math.PI) / 180,
+          radius: radius + offset,  // Mol* clips the view to this distance around the target
+        };
       },
     });
     moved = false;
@@ -404,7 +443,7 @@ const Preview = (() => {
   }
 
   function setAspect(resolution) {
-    const [w, h] = resolution.split("x").map(Number);
+    const [w, h] = sizeOf(resolution);
     const frame = element.closest(".viewer-frame");
     if (frame) frame.style.aspectRatio = `${w} / ${h}`;
     viewer?.plugin.canvas3d?.handleResize();
@@ -440,7 +479,7 @@ const Preview = (() => {
       viewer.plugin.canvas3d.requestCameraReset({ durationMs: 0, snapshot: saved });
     } else if (!moved && (refit || newStructure || !before || before.resolution !== options.resolution
                           || before.style !== options.style || before.viewpoint !== options.viewpoint)) {
-      frameViewpoint(options.viewpoint);
+      frameViewpoint(options.viewpoint, options.resolution);
     }
     refit = false;
     shown = { ...options };
@@ -472,11 +511,11 @@ const Preview = (() => {
       running ??= drain();
       return running;
     },
-    /** Turn to one of Molecular Nodes' preset viewpoints. */
+    /** Turn to one of Molecular Nodes' preset viewpoints, framed as Blender frames it. */
     frame(viewpoint, durationMs = 400) {
-      if (!viewer || !entry) return;
-      frameViewpoint(viewpoint, durationMs);
-      if (shown) shown.viewpoint = viewpoint;
+      if (!viewer || !entry || !shown) return;
+      frameViewpoint(viewpoint, shown.resolution, durationMs);
+      shown.viewpoint = viewpoint;
     },
     /** The colours shared with Blender: the /api/options response. */
     setColors(options) {
@@ -516,6 +555,5 @@ const Preview = (() => {
     get busy() { return Boolean(running); },
     get shownId() { return shown?.pdb_id ?? null; },
     on(kind, fn) { listeners[kind].push(fn); },
-    viewpointAxes,
   };
 })();
