@@ -16,7 +16,7 @@
 
 **Software version described:** 0.2.0, repository commit 12a84b1 (13 November 2026): Mol\* 3D preview with "Render this view", colour-blind-safe palettes shared by preview and render, and camera-relative studio lighting.
 
-**Before submission (note to the author, delete afterwards):** release v0.2.0 on GitHub so that Zenodo assigns its DOI; images rendered from commit 12a84b1 still carry the label 0.1.0 in their credit line and metadata, so bump the version in app/about.py and CITATION.cff first. Then put the new DOI in the Bhoir (2026) reference.
+**Before submission (note to the author, delete afterwards):** the version number was raised to 0.2.0 in commit ed36b1b (branch claude/sharp-bohr-8bgr5d), so new images report v0.2.0. Remaining: merge that branch into main, publish release v0.2.0 on GitHub so that Zenodo assigns its DOI, then put that DOI in the Bhoir (2026) reference and in the app (see the README's DOI section).
 
 | Candidate journal | Fit | Check before submitting |
 | --- | --- | --- |
