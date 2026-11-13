@@ -3,3 +3,4 @@ E6,E6|pdb_id=4hhb|style=cartoon|tag=rep1,4HHB,cartoon,default,default,standard,3
 E6,E6|pdb_id=4hhb|style=cartoon|tag=rep2,4HHB,cartoon,default,default,standard,32,1280x720,0,4,ok,4779,2.3,40.1,45.5,1839,535,,paper/benchmark/renders/E6_4hhb_cartoon_default_standard_1280x720_t4_rep2.png
 E2,E2|pdb_id=4hhb|style=cartoon,4HHB,cartoon,default,default,standard,32,1280x720,0,4,ok,4779,2.4,39.5,45.1,1833,535,,paper/benchmark/renders/E2_4hhb_cartoon_default_standard_1280x720_t4.png
 E2,E2|pdb_id=4hhb|style=ribbon,4HHB,ribbon,default,default,standard,32,1280x720,0,4,ok,4779,2.3,47.2,52.9,1816,538,,paper/benchmark/renders/E2_4hhb_ribbon_default_standard_1280x720_t4.png
+E2,E2|pdb_id=4hhb|style=surface,4HHB,surface,default,default,standard,32,1280x720,0,4,ok,4779,2.6,39.3,45.5,1814,472,,paper/benchmark/renders/E2_4hhb_surface_default_standard_1280x720_t4.png
