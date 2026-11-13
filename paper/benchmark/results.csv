@@ -36,3 +36,11 @@ E3,E3|pdb_id=4hhb|quality=draft|style=cartoon,4HHB,cartoon,default,default,draft
 E3,E3|pdb_id=4hhb|quality=standard|style=cartoon,4HHB,cartoon,default,default,standard,32,1280x720,0,4,ok,4779,2.4,39.1,44.7,1836,535,,paper/benchmark/renders/E3_4hhb_cartoon_default_standard_1280x720_t4.png
 E3,E3|pdb_id=4hhb|quality=high|style=cartoon,4HHB,cartoon,default,default,high,64,1280x720,0,4,ok,4779,2.5,71.0,76.9,1838,536,,paper/benchmark/renders/E3_4hhb_cartoon_default_high_1280x720_t4.png
 E3,E3|pdb_id=1aon|quality=draft|style=surface,1AON,surface,default,default,draft,16,1280x720,0,4,ok,58870,12.3,29.8,45.3,2841,438,,paper/benchmark/renders/E3_1aon_surface_default_draft_1280x720_t4.png
+E3,E3|pdb_id=1aon|quality=standard|style=surface,1AON,surface,default,default,standard,32,1280x720,0,4,ok,58870,12.5,45.5,61.3,2816,440,,paper/benchmark/renders/E3_1aon_surface_default_standard_1280x720_t4.png
+E3,E3|pdb_id=1aon|quality=high|style=surface,1AON,surface,default,default,high,64,1280x720,0,4,ok,58870,12.7,77.3,93.7,2890,440,,paper/benchmark/renders/E3_1aon_surface_default_high_1280x720_t4.png
+E3,E3|pdb_id=4hhb|samples=512|style=cartoon|tag=ref,4HHB,cartoon,default,default,reference,512,1280x720,0,4,ok,4779,3.3,389.1,395.7,1832,535,,paper/benchmark/renders/E3_4hhb_cartoon_default_s512_1280x720_t4_ref.png
+E3,E3|pdb_id=1aon|samples=512|style=surface|tag=ref,1AON,surface,default,default,reference,512,1280x720,0,4,ok,58870,11.8,328.3,343.4,2598,441,,paper/benchmark/renders/E3_1aon_surface_default_s512_1280x720_t4_ref.png
+E1,E1|pdb_id=1crn|style=cartoon,1CRN,cartoon,default,default,standard,32,1280x720,0,4,ok,327,2.1,12.0,17.2,1777,154,,paper/benchmark/renders/E1_1crn_cartoon_default_standard_1280x720_t4.png
+E1,E1|pdb_id=1crn|style=surface,1CRN,surface,default,default,standard,32,1280x720,0,4,ok,327,2.2,20.3,25.8,1744,254,,paper/benchmark/renders/E1_1crn_surface_default_standard_1280x720_t4.png
+E1,E1|pdb_id=1crn|style=spheres,1CRN,spheres,default,default,standard,32,1280x720,0,4,ok,327,1.9,19.4,24.4,1705,326,,paper/benchmark/renders/E1_1crn_spheres_default_standard_1280x720_t4.png
+E1,E1|pdb_id=1bna|style=cartoon,1BNA,cartoon,default,default,standard,32,1280x720,0,4,ok,566,2.1,11.7,16.6,1775,169,,paper/benchmark/renders/E1_1bna_cartoon_default_standard_1280x720_t4.png
