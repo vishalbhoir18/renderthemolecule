@@ -4,3 +4,16 @@ E6,E6|pdb_id=4hhb|style=cartoon|tag=rep2,4HHB,cartoon,default,default,standard,3
 E2,E2|pdb_id=4hhb|style=cartoon,4HHB,cartoon,default,default,standard,32,1280x720,0,4,ok,4779,2.4,39.5,45.1,1833,535,,paper/benchmark/renders/E2_4hhb_cartoon_default_standard_1280x720_t4.png
 E2,E2|pdb_id=4hhb|style=ribbon,4HHB,ribbon,default,default,standard,32,1280x720,0,4,ok,4779,2.3,47.2,52.9,1816,538,,paper/benchmark/renders/E2_4hhb_ribbon_default_standard_1280x720_t4.png
 E2,E2|pdb_id=4hhb|style=surface,4HHB,surface,default,default,standard,32,1280x720,0,4,ok,4779,2.6,39.3,45.5,1814,472,,paper/benchmark/renders/E2_4hhb_surface_default_standard_1280x720_t4.png
+E2,E2|pdb_id=4hhb|style=spheres,4HHB,spheres,default,default,standard,32,1280x720,0,4,ok,4779,2.4,37.1,42.9,1711,647,,paper/benchmark/renders/E2_4hhb_spheres_default_standard_1280x720_t4.png
+E2,E2|pdb_id=4hhb|style=ball_and_stick,4HHB,ball_and_stick,default,default,standard,32,1280x720,0,4,ok,4779,2.2,44.0,49.3,1915,737,,paper/benchmark/renders/E2_4hhb_ball_and_stick_default_standard_1280x720_t4.png
+E2,E2|pdb_id=4hhb|style=sticks,4HHB,sticks,default,default,standard,32,1280x720,0,4,ok,4779,2.0,32.7,37.9,2028,675,,paper/benchmark/renders/E2_4hhb_sticks_default_standard_1280x720_t4.png
+E2,E2|color=rainbow|pdb_id=4hhb|style=cartoon,4HHB,cartoon,rainbow,default,standard,32,1280x720,0,4,ok,4779,2.5,39.2,45.3,1836,543,,paper/benchmark/renders/E2_4hhb_cartoon_rainbow_standard_1280x720_t4.png
+E2,E2|color=secondary_structure|pdb_id=4hhb|style=cartoon,4HHB,cartoon,secondary_structure,default,standard,32,1280x720,0,4,ok,4779,2.8,38.3,44.3,1836,532,,paper/benchmark/renders/E2_4hhb_cartoon_secondary_structure_standard_1280x720_t4.png
+E2,E2|color=goodsell|pdb_id=4hhb|style=cartoon,4HHB,cartoon,goodsell,default,standard,32,1280x720,0,4,ok,4779,2.4,37.8,43.7,1841,535,,paper/benchmark/renders/E2_4hhb_cartoon_goodsell_standard_1280x720_t4.png
+E2,E2|color=rainbow|pdb_id=4hhb|style=surface,4HHB,surface,rainbow,default,standard,32,1280x720,0,4,ok,4779,2.6,39.7,45.7,1817,496,,paper/benchmark/renders/E2_4hhb_surface_rainbow_standard_1280x720_t4.png
+E2,E2|color=secondary_structure|pdb_id=4hhb|style=surface,4HHB,surface,secondary_structure,default,standard,32,1280x720,0,4,ok,4779,2.9,43.3,49.3,1813,469,,paper/benchmark/renders/E2_4hhb_surface_secondary_structure_standard_1280x720_t4.png
+E2,E2|color=goodsell|pdb_id=4hhb|style=surface,4HHB,surface,goodsell,default,standard,32,1280x720,0,4,ok,4779,2.8,38.4,44.7,1800,472,,paper/benchmark/renders/E2_4hhb_surface_goodsell_standard_1280x720_t4.png
+E4,E4|pdb_id=4hhb|style=cartoon|threads=1,4HHB,cartoon,default,default,standard,32,1280x720,0,1,ok,4779,2.5,151.5,157.1,1841,535,,paper/benchmark/renders/E4_4hhb_cartoon_default_standard_1280x720_t1.png
+E4,E4|pdb_id=4hhb|style=cartoon|threads=2,4HHB,cartoon,default,default,standard,32,1280x720,0,2,ok,4779,2.7,78.2,84.7,1831,535,,paper/benchmark/renders/E4_4hhb_cartoon_default_standard_1280x720_t2.png
+E4,E4|pdb_id=4hhb|style=cartoon|threads=4,4HHB,cartoon,default,default,standard,32,1280x720,0,4,ok,4779,2.6,37.6,43.5,1835,535,,paper/benchmark/renders/E4_4hhb_cartoon_default_standard_1280x720_t4.png
+E5,E5|assembly=False|pdb_id=1cd3|style=cartoon,1CD3,cartoon,default,default,standard,32,1280x720,0,4,ok,9851,2.5,21.4,26.8,1838,384,,paper/benchmark/renders/E5_1cd3_cartoon_default_standard_1280x720_t4.png
