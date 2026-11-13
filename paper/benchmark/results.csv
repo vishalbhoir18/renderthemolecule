@@ -17,3 +17,4 @@ E4,E4|pdb_id=4hhb|style=cartoon|threads=1,4HHB,cartoon,default,default,standard,
 E4,E4|pdb_id=4hhb|style=cartoon|threads=2,4HHB,cartoon,default,default,standard,32,1280x720,0,2,ok,4779,2.7,78.2,84.7,1831,535,,paper/benchmark/renders/E4_4hhb_cartoon_default_standard_1280x720_t2.png
 E4,E4|pdb_id=4hhb|style=cartoon|threads=4,4HHB,cartoon,default,default,standard,32,1280x720,0,4,ok,4779,2.6,37.6,43.5,1835,535,,paper/benchmark/renders/E4_4hhb_cartoon_default_standard_1280x720_t4.png
 E5,E5|assembly=False|pdb_id=1cd3|style=cartoon,1CD3,cartoon,default,default,standard,32,1280x720,0,4,ok,9851,2.5,21.4,26.8,1838,384,,paper/benchmark/renders/E5_1cd3_cartoon_default_standard_1280x720_t4.png
+E5,E5|assembly=True|pdb_id=1cd3|style=cartoon,1CD3,cartoon,default,default,standard,32,1280x720,1,4,ok,591060,2.5,72.7,78.3,1836,757,,paper/benchmark/renders/E5_1cd3_cartoon_default_standard_1280x720_asm_t4.png
