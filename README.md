@@ -22,7 +22,9 @@ No Blender installation is needed on the visitor's side; everything runs on the 
 Options: style (cartoon, ribbon, surface, spheres, ball-and-stick, sticks),
 colour (by chain, rainbow, secondary structure, Goodsell), material, viewpoint,
 image size, quality, white/black/transparent background, ligand highlighting
-and biological assemblies. Visitors give their name and email, and every render
+and biological assemblies. An interactive 3D preview ([Mol*](https://molstar.org)) shows the
+molecule as soon as an ID is typed: turn and zoom it, and **Render this view** makes Blender
+render exactly that view. Visitors give their name and email, and every render
 can be recorded in a private Google Sheet (see below). Each image credits its
 sources and comes with a ready-made citation.
 
@@ -36,7 +38,7 @@ Free software under the GNU GPL v3 or later.
   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/vishalbhoir18/renderthemolecule/blob/main/notebooks/render_the_molecule.ipynb)
 * **Landing page:** <https://vishalbhoir18.github.io/renderthemolecule/>
 * **Command line** (Linux x86-64, Python 3.13, after `pip install -r requirements.txt`):
-  `python -m app.cli --pdb-id 4HHB --name "Your Name" --email you@example.org --out results`
+  `python -m app.cli --pdb-id 4HHB --name "Your Name" --email you@example.org --institution "Your University" --country India --out results`
   (`--help` lists every option).
 
 ## How it works
@@ -59,12 +61,59 @@ Browser ──▶ FastAPI (app/main.py)
   `bpy` package. There is no Blender binary to install and no add-on to enable.
 * **Cycles, not EEVEE.** Without a GPU, EEVEE runs through software OpenGL. On a 4-vCPU test
   machine it was slower than Cycles at 32 samples with the CPU denoiser (29 s vs 20 s).
+* **Lighting.** Three sun lights are placed relative to the camera, as Mol*'s light is (key
+  from the upper left, fill from the right, rim from behind), so every view, including one
+  chosen in the 3D preview, is lit alike. The default material is *Glossy (lit)*; *Ambient
+  occlusion* is evenly self-lit and looks flatter. Colours go through Blender's
+  "Khronos PBR Neutral" view transform, which keeps them as chosen (the default, AgX, turns
+  strong colours pastel). The settings are `LIGHTS`, `WORLD_STRENGTH`, `GLOSSY_ROUGHNESS` and
+  `VIEW_TRANSFORM` in `app/blender_render.py`.
 * **One process per render.** Blender keeps global state and can crash; a fresh process per job
   keeps the web server alive and returns all memory after every render.
 * **No Redis/Celery.** The app runs as a single container (on Modal or any Docker host), so the queue lives in
   memory. One worker is right anyway: Cycles already uses every CPU core.
 * **Content-addressed cache.** Each image is named by a hash of its options, so a repeated
   request (or a shared link) is served instantly.
+
+### 3D preview and "Render this view"
+
+The page loads [Mol*](https://molstar.org) (MIT licence; the viewer build is in
+`app/static/vendor/molstar`, served by the app itself) the first time a PDB ID is entered. The
+structure comes from `GET /api/structure/{id}`, the same download cache the renders use, so
+the browser contacts no other site and the render that follows does not download it again.
+`app/static/preview.js` mirrors the chosen style, colour, ligands, assembly and background,
+keeps the viewer at the image's aspect ratio, and turns to the selected preset view.
+
+Turning or zooming the molecule ticks **Render this view**. The camera is then sent with the
+request as `camera`: position, target and up direction in ångström, in the structure file's
+coordinates, and the vertical field of view in degrees. Both programs keep those coordinates
+(Molecular Nodes scales them by 0.1), so `place_camera` in `app/blender_render.py` sets the
+Blender camera directly: same position and orientation, vertical sensor fit, same vertical
+angle. Values are rounded (0.01 Å, 4 decimals for the direction), so the same view gives the
+same cache key. The view is part of the shareable link (`cam=`), the Sheet's *View* column says
+"3D preview", and the command line accepts it as `--camera` (the same 10 numbers).
+`tests/test_render_smoke.py` checks with a real render that the molecule lands where the
+camera puts it.
+
+The preview is approximate in looks (Mol*'s own cartoon and lighting), not in framing or
+colour. When **Render this view** is off, the preset views are framed more tightly by
+Molecular Nodes.
+
+**Colours.** Both programs colour the same way, from constants in `app/options.py` that the
+page reads from `/api/options`:
+
+* *By chain*: chains take `CHAIN_COLORS` in the order of their IDs (A, B, C, ...), repeating
+  after the last. It is the colour-blind-safe Okabe-Ito palette (Wong, *Nature Methods* 8, 441;
+  2011). Spheres and sticks show other elements in their usual colours.
+* *Goodsell*: each chain in its colour, with carbon atoms darkened (visible on spheres, sticks
+  and surfaces; a cartoon has no atoms to darken).
+* *Rainbow*: blue to red along each chain's protein or nucleic acid, by residue number
+  (`RAINBOW_COLORS`); ligands and water grey.
+* *Secondary structure*: Molecular Nodes' colours, helices green, sheets red, loops blue.
+
+`app/blender_render.py` stores the chain and rainbow colours as per-atom attributes, converted
+to Blender's linear colour space; `app/static/preview.js` gives Mol* the same colours (its
+rainbow is a small custom colour theme). Changing a palette changes both.
 
 Measured on a 4-vCPU machine at 1280 × 720: 15–23 s per image at *Standard* quality and about
 9 s at *Draft*, plus 3–4 s of scene setup. With 2 threads, the same renders took 45–140 s.
@@ -146,12 +195,12 @@ pushes to `main` that pass CI are then deployed. For the Sheet record, add
 
 ## Record who rendered what in a Google Sheet
 
-Visitors must enter their **name and email** before rendering. Each finished request
+Visitors must enter their **name, email, institution and country** before rendering. Each finished request
 (including ones served from the cache, and failed ones) adds a row to a private Google
 Sheet in your own Google account:
 
-| Time | Name | Email | PDB ID | Style | Colour | … all options | Status | From cache | Render time (s) | Error | Open again | Source |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Time | Name | Email | PDB ID | Style | Colour | … all options | Status | From cache | Render time (s) | Error | Open again | Source | Institution | Country |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 
 *Source* is **Web app** or **Colab** (renders made with the Colab notebook).
 
@@ -188,10 +237,11 @@ it cannot fake website rows. If it is ever abused, change `COLAB_TOKEN` in the s
 deploy a new version) and in `colab_recording.json`; the website is not affected. Colab users
 run their own copy of the notebook, so recording there relies on their honesty.
 
-**Updating from the first version of the script** (without `COLAB_TOKEN`): paste the new
-`Code.gs`, put your existing website password back into `TOKEN`, set `COLAB_TOKEN`, then
-**Deploy → Manage deployments → Edit → Version: New version → Deploy** (the URL stays the
-same). Existing rows are kept; the *Source* column is added to the header automatically.
+**Updating the script** (whenever `Code.gs` changes, for example when the *Source*,
+*Institution* and *Country* columns were added): paste the new `Code.gs`, put your existing
+values back into `TOKEN` and `COLAB_TOKEN`, then **Deploy → Manage deployments → Edit →
+Version: New version → Deploy** (the URL stays the same). Existing rows are kept; new
+columns are always added at the end and their headers appear automatically.
 
 If you later change the script, use **Deploy → Manage deployments → Edit → Version: New
 version**, or Google keeps serving the old code. If the Sheet cannot be reached, the app
@@ -199,8 +249,23 @@ keeps rendering and retries sending the rows (they are lost only if the Space re
 before the Sheet is reachable again). The app's logs say why a send failed, for example
 a wrong token.
 
-Because the site records personal data, keep the Sheet private and delete a person's rows
-if they ask you to.
+### Privacy notice
+
+The details are covered by a short privacy notice: [`app/static/privacy.html`](app/static/privacy.html),
+served by the web app at `/privacy` and copied to [`docs/privacy.html`](docs/privacy.html) for the
+landing page (a test keeps the two identical). It is linked next to the form fields, in the web app's
+footer, on the landing page and in the notebook, and its key sentence is shown wherever details
+are asked for:
+
+> Your information will be used to understand academic adoption and improve the application.
+> It will not be shared or used for marketing without your separate consent.
+
+Keep the Sheet private, and delete a person's rows if they ask you to. The notice points
+people to <https://linktr.ee/thebioway> for such requests; to give an email address instead,
+change the *Your choices* paragraph of both copies.
+
+**Journals.** The NAR Web Server Issue does not accept tools that force users to register, log
+in or enter an email address. Before submitting there, make the details optional.
 
 ## Google Colab notebook and landing page
 
@@ -262,7 +327,10 @@ All settings are environment variables (see `app/config.py`).
 
 ## API
 
-* `POST /api/render` with JSON such as `{"pdb_id": "4HHB", "style": "surface", "name": "Ada Lovelace", "email": "ada@example.org"}` returns a job (HTTP 202).
+* `POST /api/render` with JSON such as `{"pdb_id": "4HHB", "style": "surface", "name": "Ada Lovelace", "email": "ada@example.org", "institution": "University of London", "country": "United Kingdom"}` returns a job (HTTP 202).
+  An optional `"camera": {"position": [x, y, z], "target": [x, y, z], "up": [x, y, z], "fov": 45}`
+  (ångström, structure-file coordinates; vertical field of view in degrees) renders that exact view.
+* `GET /api/structure/{id}` returns the entry's BinaryCIF file from the server's cache (used by the 3D preview).
 * `GET /api/jobs/{id}` returns `status` (`queued` / `running` / `done` / `failed`), `jobs_ahead`, `image_url` and `error`.
 * `GET /api/options` lists every choice and its default; interactive docs are at `/api/docs`.
 
@@ -341,5 +409,6 @@ the License, or (at your option) any later version. It is distributed in the hop
 be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE. See [`LICENSE`](LICENSE) for the full text.
 
-It builds on Molecular Nodes (GPL-3.0) and Blender (GPL). Structure data from the PDB is free
-of usage restrictions, but please cite the entries you render.
+It builds on Molecular Nodes (GPL-3.0) and Blender (GPL). The 3D preview ships the Mol* viewer
+(MIT licence, copyright Mol* contributors; `app/static/vendor/molstar/LICENSE`). Structure data
+from the PDB is free of usage restrictions, but please cite the entries you render.

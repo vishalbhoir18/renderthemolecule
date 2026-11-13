@@ -3,21 +3,24 @@
 const SELECTS = ["style", "color", "material", "viewpoint", "resolution", "quality", "background"];
 const CHECKS = ["ligands", "assembly", "credit"];
 const STORAGE_KEY = "rtm-options";
-const VISITOR_KEY = "rtm-visitor";  // name + email, kept only in this browser for next time
+const VISITOR = ["name", "email", "institution", "country"];
+const VISITOR_KEY = "rtm-visitor";  // the visitor's details, kept only in this browser for next time
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const PDB_RE = /^(?:[1-9][a-z0-9]{3}|pdb_[0-9a-z]{8})$/i;
+const PREVIEW_FIELDS = ["style", "color", "background", "resolution", "ligands", "assembly"];
 const POLL_MS = 1500;
 
 const $ = (id) => document.getElementById(id);
 const form = $("render-form");
 const pdbInput = $("pdb_id");
-const nameInput = $("name");
-const emailInput = $("email");
 const submitBtn = $("submit");
 
 let pollTimer = null;
 let tickTimer = null;
 let currentJob = null;       // id of the job this page is following
 let currentJobState = null;  // its latest status from the server
+let previewTimer = null;
+let linkCamera = null;       // { pdb_id, camera } from a shared link, until the preview shows it
 
 function readStored(key = STORAGE_KEY) {
   try { return JSON.parse(localStorage.getItem(key) || "{}"); } catch { return {}; }
@@ -28,12 +31,14 @@ function writeStored(values, key = STORAGE_KEY) {
 
 async function loadOptions() {
   const resp = await fetch("/api/options");
-  const { choices, defaults } = await resp.json();
+  const data = await resp.json();
+  const { choices, defaults } = data;
+  Preview.setColors(data);  // so the preview's colours are Blender's
   const params = new URLSearchParams(location.search);
   const stored = readStored();
   const visitor = readStored(VISITOR_KEY);
-  nameInput.value = visitor.name || "";
-  emailInput.value = visitor.email || "";
+  for (const field of VISITOR) $(field).value = visitor[field] || "";
+  loadCountries();
 
   for (const name of SELECTS) {
     const select = $(name);
@@ -52,32 +57,64 @@ async function loadOptions() {
   const id = params.get("id");
   if (id) {
     pdbInput.value = id.toUpperCase();
-    if (nameInput.value && emailInput.value) {
+    const camera = parseCamera(params.get("cam"));
+    if (camera) {
+      linkCamera = { pdb_id: id.toLowerCase(), camera };
+      Preview.useCamera(camera);
+      $("use_view").disabled = false;
+      setUseView(true);
+    }
+    updatePreview({ immediate: true });
+    const missing = VISITOR.find((field) => !$(field).value.trim());
+    if (!missing) {
       form.requestSubmit();
     } else {
-      showError("Enter your name and email, then press Render image.");
-      (nameInput.value ? emailInput : nameInput).focus();
+      showError("Enter your name, email, institution and country, then press Render image.");
+      $(missing).focus();
     }
   }
 }
 
+// Country suggestions; typing any other country still works.
+async function loadCountries() {
+  try {
+    const names = await (await fetch("/static/countries.json")).json();
+    $("countries").replaceChildren(...names.map((name) => new Option(name)));
+  } catch { /* suggestions are optional */ }
+}
+
 function formValues() {
-  const values = {
-    pdb_id: pdbInput.value.trim(),
-    name: nameInput.value.trim(),
-    email: emailInput.value.trim(),
-  };
+  const values = { pdb_id: pdbInput.value.trim() };
+  for (const field of VISITOR) values[field] = $(field).value.trim();
   for (const name of SELECTS) values[name] = $(name).value;
   for (const name of CHECKS) values[name] = $(name).checked;
+  if ($("use_view").checked) {
+    const code = values.pdb_id.toLowerCase();
+    const camera = Preview.shownId === code ? Preview.camera() : null;
+    values.camera = camera || (linkCamera?.pdb_id === code ? linkCamera.camera : null);
+  }
   return values;
+}
+
+// Camera in links: px,py,pz,tx,ty,tz,ux,uy,uz,fov (as RenderRequest.share_query writes it).
+function cameraParam(camera) {
+  return [...camera.position, ...camera.target, ...camera.up, camera.fov].join(",");
+}
+
+function parseCamera(text) {
+  const v = (text || "").split(",").map(Number);
+  if (v.length !== 10 || !v.every(Number.isFinite)) return null;
+  return { position: v.slice(0, 3), target: v.slice(3, 6), up: v.slice(6, 9), fov: v[9] };
 }
 
 // First problem with the form, as [message, field to focus], or null.
 function formProblem(values) {
-  if (!values.name) return ["Please enter your name.", nameInput];
+  if (!values.name) return ["Please enter your name.", $("name")];
   if (!EMAIL_RE.test(values.email)) {
-    return ["Please enter a valid email address, like name@university.edu.", emailInput];
+    return ["Please enter a valid email address, like name@university.edu.", $("email")];
   }
+  if (!values.institution) return ["Please enter your institution.", $("institution")];
+  if (!values.country) return ["Please enter your country.", $("country")];
   if (!values.pdb_id) return ["Please enter a PDB ID, for example 4HHB.", pdbInput];
   return null;
 }
@@ -86,8 +123,105 @@ function updateUrl(values) {
   const params = new URLSearchParams({ id: values.pdb_id.toUpperCase() });
   for (const name of SELECTS) params.set(name, values[name]);
   for (const name of CHECKS) params.set(name, values[name] ? "1" : "0");
+  if (values.camera) params.set("cam", cameraParam(values.camera));
   history.replaceState(null, "", `?${params}`);
 }
+
+// --- Result tabs: the 3D preview and the rendered image -------------------------------------
+
+function selectTab(name) {
+  for (const tab of ["preview", "image"]) {
+    const selected = tab === name;
+    $(`tab-${tab}`).setAttribute("aria-selected", String(selected));
+    $(`tab-${tab}`).tabIndex = selected ? 0 : -1;
+    $(`${tab}-pane`).hidden = !selected;
+  }
+  if (name === "preview") Preview.resize();
+}
+
+for (const tab of ["preview", "image"]) {
+  $(`tab-${tab}`).addEventListener("click", () => selectTab(tab));
+  $(`tab-${tab}`).addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    const other = tab === "preview" ? "image" : "preview";
+    selectTab(other);
+    $(`tab-${other}`).focus();
+  });
+}
+
+// --- 3D preview --------------------------------------------------------------------------
+
+function previewOptions() {
+  const options = { pdb_id: pdbInput.value.trim().toLowerCase(), viewpoint: $("viewpoint").value };
+  for (const name of PREVIEW_FIELDS) options[name] = CHECKS.includes(name) ? $(name).checked : $(name).value;
+  return options;
+}
+
+function showViewerMessage(text, isError = false) {
+  const message = $("viewer-message");
+  message.textContent = text;
+  message.hidden = !text;
+  message.classList.toggle("is-error", isError);
+}
+
+// "Render this view": send the preview's camera instead of a preset viewpoint.
+function setUseView(on) {
+  $("use_view").checked = on;
+  $("viewpoint").disabled = on;
+  $("viewpoint-note").hidden = !on;
+  if (!submitBtn.disabled) submitBtn.textContent = idleLabel();
+}
+
+function idleLabel() {
+  return $("use_view").checked ? "Render this view" : "Render image";
+}
+
+function updatePreview({ immediate = false } = {}) {
+  clearTimeout(previewTimer);
+  const code = pdbInput.value.trim().toLowerCase();
+  if (!PDB_RE.test(code)) return;  // keep showing the last molecule while typing
+  if (!Preview.supported()) {
+    showViewerMessage("This browser cannot show 3D graphics (WebGL), so there is no preview. Rendering still works.");
+    return;
+  }
+  if (Preview.shownId && Preview.shownId !== code && linkCamera?.pdb_id !== code) {
+    setUseView(false);  // a view chosen for another molecule does not apply
+    Preview.forgetView();
+  }
+  previewTimer = setTimeout(async () => {
+    selectTab("preview");  // also keeps the viewer visible (and sized) while it changes
+    await Preview.show($("viewer"), previewOptions());
+    const ready = Preview.shownId !== null;
+    $("use_view").disabled = !ready && !linkCamera;
+    $("reset-view").disabled = !ready;
+    if (Preview.shownId === linkCamera?.pdb_id) linkCamera = null;
+  }, immediate ? 0 : 500);
+}
+
+Preview.on("status", (text, isError) => showViewerMessage(text, isError));
+Preview.on("note", (text) => {
+  $("viewer-note").textContent = text;
+  $("viewer-note").hidden = !text;
+});
+Preview.on("move", () => {
+  $("use_view").disabled = false;
+  setUseView(true);
+});
+
+pdbInput.addEventListener("input", () => updatePreview());
+for (const name of PREVIEW_FIELDS) $(name).addEventListener("change", () => updatePreview({ immediate: true }));
+
+$("viewpoint").addEventListener("change", () => Preview.frame($("viewpoint").value));
+
+$("use_view").addEventListener("change", () => {
+  setUseView($("use_view").checked);
+  if (!$("use_view").checked) Preview.frame($("viewpoint").value);
+});
+
+$("reset-view").addEventListener("click", () => {
+  setUseView(false);
+  Preview.frame($("viewpoint").value);
+});
 
 function showError(message) {
   $("error").textContent = message;
@@ -107,7 +241,7 @@ function stopPolling() {
 
 function setBusy(busy) {
   submitBtn.disabled = busy;
-  submitBtn.textContent = busy ? "Rendering…" : "Render image";
+  submitBtn.textContent = busy ? "Rendering…" : idleLabel();
 }
 
 function describe(job, startedAt) {
@@ -193,6 +327,7 @@ async function poll(jobId, values, startedAt) {
   if (job.status === "done") {
     stopPolling(); setBusy(false); setStatus("");
     showResult(job, values);
+    selectTab("image");
   } else if (job.status === "failed") {
     stopPolling(); setBusy(false); setStatus("");
     showError(job.error || "Rendering failed.");
@@ -220,8 +355,8 @@ form.addEventListener("submit", async (event) => {
   const options = {};
   for (const name of [...SELECTS, ...CHECKS]) options[name] = values[name];
   writeStored(options);
-  writeStored({ name: values.name, email: values.email }, VISITOR_KEY);
-  updateUrl(values);  // shareable link: options only, never name or email
+  writeStored(Object.fromEntries(VISITOR.map((field) => [field, values[field]])), VISITOR_KEY);
+  updateUrl(values);  // shareable link: options and view only, never name or email
 
   let job;
   try {
@@ -253,6 +388,7 @@ for (const chip of document.querySelectorAll(".chip")) {
   chip.addEventListener("click", () => {
     pdbInput.value = chip.dataset.id;
     pdbInput.focus();
+    updatePreview({ immediate: true });
   });
 }
 

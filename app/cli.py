@@ -2,7 +2,8 @@
 
 Used by the Google Colab notebook, and handy on any Linux x86-64 machine:
 
-    python -m app.cli --pdb-id 4HHB --name "Ada Lovelace" --email ada@example.org --out results
+    python -m app.cli --pdb-id 4HHB --name "Ada Lovelace" --email ada@example.org \
+        --institution "University of London" --country "United Kingdom" --out results
 
 Every option of the web form is available (see --help). Writes the PNG and a
 result.json into --out. result.json holds the citation text and the row for
@@ -39,6 +40,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--pdb-id", required=True, help="PDB ID, for example 4HHB")
     parser.add_argument("--name", required=True, help="your name (recorded with the render)")
     parser.add_argument("--email", required=True, help="your email (recorded with the render)")
+    parser.add_argument("--institution", required=True, help="your institution (recorded with the render)")
+    parser.add_argument("--country", required=True, help="your country (recorded with the render)")
     defaults = RenderRequest.model_fields
     for field in ("style", "color", "material", "viewpoint", "resolution", "quality", "background"):
         parser.add_argument(
@@ -48,6 +51,12 @@ def build_parser() -> argparse.ArgumentParser:
         parser.add_argument(
             f"--{field}", action=argparse.BooleanOptionalAction, default=defaults[field].default
         )
+    parser.add_argument(
+        "--camera", metavar="PX,PY,PZ,TX,TY,TZ,UX,UY,UZ,FOV",
+        help="exact view instead of --viewpoint: camera position, target and up direction "
+             "(ångström, structure-file coordinates) and vertical field of view in degrees; "
+             "the cam= value of a web-app link",
+    )
     parser.add_argument("--out", type=Path, default=Path("render-output"), help="output folder")
     parser.add_argument("--source", default="Colab", help="value of the Sheet's Source column")
     parser.add_argument(
@@ -74,7 +83,10 @@ def main(argv: list[str] | None = None) -> int:
     except ValidationError as exc:
         return _error(out, str(exc.errors()[0]["msg"]).removeprefix("Value error, "))
     request = submission.render_request()
-    submitter = Submitter(submission.name, submission.email, base_url=about.SITE_URL)
+    submitter = Submitter(
+        submission.name, submission.email, base_url=about.SITE_URL,
+        institution=submission.institution, country=submission.country,
+    )
 
     settings = Settings(data_dir=out / ".cache")
     settings.ensure_dirs()

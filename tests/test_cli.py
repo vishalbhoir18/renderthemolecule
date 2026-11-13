@@ -18,7 +18,8 @@ def _png() -> bytes:
 
 PNG_BYTES = _png()
 
-BASE = ["--pdb-id", "4HHB", "--name", "Ada Lovelace", "--email", "Ada@Example.org"]
+BASE = ["--pdb-id", "4HHB", "--name", "Ada Lovelace", "--email", "Ada@Example.org",
+        "--institution", "University of London", "--country", "United Kingdom"]
 
 
 @pytest.fixture
@@ -54,12 +55,13 @@ def test_renders_and_writes_citation_and_sheet_row(tmp_path, fake_pipeline):
     row = result["row"]
     assert (row["name"], row["email"], row["source"], row["status"]) == (
         "Ada Lovelace", "ada@example.org", "Colab", "done")
+    assert (row["institution"], row["country"]) == ("University of London", "United Kingdom")
     assert row["link"].startswith(about.SITE_URL + "/?id=4HHB&style=surface")
 
 
 def test_invalid_details_are_reported_without_rendering(tmp_path, fake_pipeline):
     out = tmp_path / "out"
-    code = cli.main(["--pdb-id", "4HHB", "--name", "Ada", "--email", "nope", "--out", str(out)])
+    code = cli.main(BASE[:4] + ["--email", "nope", "--institution", "X", "--country", "India", "--out", str(out)])
     assert code == 2
     result = json.loads((out / "result.json").read_text())
     assert result == {"ok": False, "error": "Please enter a valid email address, like name@university.edu."}
@@ -72,7 +74,7 @@ def test_failed_render_still_produces_a_sheet_row(tmp_path, fake_pipeline, monke
 
     monkeypatch.setattr(cli, "fetch_structure", not_found)
     out = tmp_path / "out"
-    assert cli.main(["--pdb-id", "9zzz", "--name", "Ada", "--email", "a@b.org", "--out", str(out)]) == 2
+    assert cli.main(["--pdb-id", "9zzz"] + BASE[2:] + ["--out", str(out)]) == 2
     result = json.loads((out / "result.json").read_text())
     assert not result["ok"] and "not found" in result["error"]
     assert result["row"]["status"] == "failed" and result["row"]["source"] == "Colab"

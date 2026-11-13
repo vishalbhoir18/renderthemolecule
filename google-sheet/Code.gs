@@ -24,13 +24,13 @@ const KEYS = [
   "time", "name", "email", "pdb_id", "style", "color", "material", "viewpoint",
   "resolution", "quality", "background", "ligands", "assembly", "credit",
   "status", "cached", "render_s", "error", "link",
-  "source",
+  "source", "institution", "country",
 ];
 const HEADERS = [
   "Time", "Name", "Email", "PDB ID", "Style", "Colour", "Material", "View",
   "Size", "Quality", "Background", "Ligands", "Assembly", "Credit line",
   "Status", "From cache", "Render time (s)", "Error", "Open again",
-  "Source",
+  "Source", "Institution", "Country",
 ];
 
 function doPost(e) {

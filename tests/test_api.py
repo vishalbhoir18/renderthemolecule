@@ -3,9 +3,13 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
+from app import main
+from app.errors import UserError
 from app.main import create_app
+from app.options import Camera
 
-VISITOR = {"name": "Ada Lovelace", "email": "ada@example.org"}
+VISITOR = {"name": "Ada Lovelace", "email": "ada@example.org", "institution": "University of London",
+           "country": "United Kingdom"}
 
 
 class FakeRecorder:
@@ -48,10 +52,61 @@ def poll(client, job_id, timeout=5):
     raise AssertionError("job did not finish")
 
 
+VIEW = {"position": [149.63, 50.82, 142.57], "target": [105.44, -18.82, 186.16], "up": [0.6422, 0.0703, 0.7633], "fov": 45}
+
+
+def test_render_this_view(client, recorder, fake_renderer):
+    body = poll(client, render(client, pdb_id="1F2N", viewpoint="top", camera=VIEW).json()["id"])
+    assert body["status"] == "done"
+    assert fake_renderer.calls[-1].camera == Camera(**VIEW)
+    assert fake_renderer.calls[-1].viewpoint == "default"  # the camera replaces the preset
+    deadline = time.time() + 5
+    while not recorder.rows and time.time() < deadline:
+        time.sleep(0.01)
+    assert recorder.rows[0]["viewpoint"] == "3D preview"
+    assert "&cam=149.63%2C50.82" in recorder.rows[0]["link"]
+    # The same view again, as text from a shared link, is served from the cache.
+    again = poll(client, render(client, pdb_id="1f2n", camera=Camera(**VIEW).to_param()).json()["id"])
+    assert again["cached"] and len(fake_renderer.calls) == 1
+
+
+def test_bad_camera_names_the_field(client):
+    resp = render(client, pdb_id="1f2n", camera={**VIEW, "fov": 300})
+    assert resp.status_code == 422
+    assert resp.json()["error"].startswith("camera.fov: the field of view must be between 10 and 130")
+
+
+def test_structure_for_the_preview(client, settings, monkeypatch):
+    (settings.structures_dir / "1f2n.bcif").write_bytes(b"BCIF" * 1000)
+    resp = client.get("/api/structure/1F2N")
+    assert resp.status_code == 200 and resp.content == b"BCIF" * 1000
+    assert resp.headers["content-encoding"] == "gzip"  # bcif shrinks a lot
+
+    def missing(code, settings):
+        raise UserError(f"{code.upper()} was not found in the Protein Data Bank.")
+
+    monkeypatch.setattr(main, "fetch_structure", missing)
+    resp = client.get("/api/structure/9zzz")
+    assert resp.status_code == 404 and "9ZZZ was not found" in resp.json()["error"]
+    assert client.get("/api/structure/hello").status_code == 422
+
+
+def test_preview_files_are_served_compressed(client):
+    page = client.get("/").text
+    assert '<script src="/static/preview.js"></script>' in page and 'id="use_view"' in page
+    assert client.get("/static/preview.js").status_code == 200
+    viewer = client.get("/static/vendor/molstar/molstar.js")
+    assert viewer.status_code == 200 and viewer.headers["content-encoding"] == "gzip"
+    assert "MIT License" in client.get("/static/vendor/molstar/LICENSE").text
+    assert "/static/vendor/molstar/molstar.js" in client.get("/static/preview.js").text
+
+
 def test_index_and_options(client):
     page = client.get("/")
     assert page.status_code == 200 and "Render the Molecule" in page.text
-    assert 'id="email"' in page.text and 'id="name"' in page.text
+    for field in ("name", "email", "institution", "country"):
+        assert f'id="{field}"' in page.text
+    assert 'href="/privacy"' in page.text
     assert 'Render the Molecule <span class="byline">by <a href="https://linktr.ee/thebioway"' in page.text
     assert 'Render the Molecule App developed by <a href="https://linktr.ee/thebioway"' in page.text
     # The footer's DOI must match the one used in citations (app/about.py).
@@ -61,7 +116,7 @@ def test_index_and_options(client):
     assert client.get("/static/app.js").status_code == 200
     opts = client.get("/api/options").json()
     assert {c["value"] for c in opts["choices"]["style"]} >= {"cartoon", "surface"}
-    assert "name" not in opts["defaults"] and "email" not in opts["defaults"]
+    assert not {"name", "email", "institution", "country"} & set(opts["defaults"])
 
 
 def test_render_round_trip(client):
@@ -75,6 +130,7 @@ def test_render_round_trip(client):
     assert image.status_code == 200
     assert image.headers["content-type"] == "image/png"
     assert "immutable" in image.headers["cache-control"]
+    assert "content-encoding" not in image.headers  # PNGs are already compressed
 
 
 @pytest.mark.parametrize(
@@ -82,9 +138,13 @@ def test_render_round_trip(client):
     [
         ({}, "Please enter your name."),
         ({"name": "Ada"}, "Please enter your email address."),
-        ({"name": "  ", "email": "ada@example.org"}, "Please enter your name."),
-        ({"name": "Ada", "email": "not-an-email"}, "valid email address"),
-        ({"name": "=HYPERLINK(1)", "email": "ada@example.org"}, "cannot start with"),
+        ({**VISITOR, "name": "  "}, "Please enter your name."),
+        ({**VISITOR, "email": "not-an-email"}, "valid email address"),
+        ({**VISITOR, "name": "=HYPERLINK(1)"}, "cannot start with"),
+        ({"name": "Ada", "email": "a@b.org"}, "Please enter your institution."),
+        ({**VISITOR, "institution": ""}, "Please enter your institution."),
+        ({**VISITOR, "country": " "}, "Please enter your country."),
+        ({**VISITOR, "country": "@home"}, "Your country cannot start with"),
     ],
 )
 def test_name_and_email_are_required(client, visitor, message):
@@ -98,7 +158,8 @@ def test_each_render_is_recorded_once_per_person(client, recorder, fake_renderer
     first = render(client, pdb_id="1EMA").json()
     # Someone else asks for the same picture while it renders: one job, two records.
     second = client.post(
-        "/api/render", json={"pdb_id": "1ema", "name": "Grace Hopper", "email": "Grace@Example.org "}
+        "/api/render", json={"pdb_id": "1ema", "name": "Grace Hopper", "email": "Grace@Example.org ",
+                             "institution": "Yale University", "country": "United States"}
     ).json()
     assert first["id"] == second["id"]
     fake_renderer.gate.set()
@@ -110,10 +171,10 @@ def test_each_render_is_recorded_once_per_person(client, recorder, fake_renderer
     while len(recorder.rows) < 3 and time.time() < deadline:
         time.sleep(0.01)
     rows = recorder.rows
-    assert [(r["name"], r["email"], r["cached"]) for r in rows] == [
-        ("Ada Lovelace", "ada@example.org", "no"),
-        ("Grace Hopper", "grace@example.org", "no"),
-        ("Ada Lovelace", "ada@example.org", "yes"),
+    assert [(r["name"], r["email"], r["institution"], r["country"], r["cached"]) for r in rows] == [
+        ("Ada Lovelace", "ada@example.org", "University of London", "United Kingdom", "no"),
+        ("Grace Hopper", "grace@example.org", "Yale University", "United States", "no"),
+        ("Ada Lovelace", "ada@example.org", "University of London", "United Kingdom", "yes"),
     ]
     assert rows[0]["pdb_id"] == "1EMA" and rows[0]["status"] == "done"
     assert rows[0]["link"].startswith("http://testserver/?id=1EMA&style=cartoon")
@@ -134,7 +195,8 @@ def test_job_status_never_reveals_who_asked(client):
     job = render(client, pdb_id="4hhb").json()
     body = poll(client, job["id"])
     text = str(job) + str(body)
-    assert "ada@example.org" not in text and "Ada" not in text
+    for detail in VISITOR.values():
+        assert detail not in text
 
 
 def test_public_url_from_proxy_headers(client, recorder):
@@ -199,3 +261,10 @@ def test_recorder_lifecycle(settings, fake_renderer, recorder):
     with TestClient(create_app(settings, fake_renderer, recorder)):
         assert recorder.started
     assert recorder.stopped
+
+
+def test_privacy_notice_is_served(client):
+    page = client.get("/privacy")
+    assert page.status_code == 200
+    assert "understand academic adoption and improve the application" in page.text
+    assert "not be shared or used for marketing without your separate consent" in page.text

@@ -27,8 +27,20 @@
         <label for="email">Your email</label>
         <input id="email" name="email" type="email" autocomplete="email" maxlength="254"
                placeholder="name@university.edu" required>
-        <p class="note">Both are required. Your name, email and the images you render are recorded
-          privately by the site owner to see who uses this tool. They are not shown to other visitors.</p>
+      </div>
+      <div class="field">
+        <label for="institution">Institution</label>
+        <input id="institution" name="institution" type="text" autocomplete="organization" maxlength="200"
+               placeholder="University, institute or company" required>
+      </div>
+      <div class="field">
+        <label for="country">Country</label>
+        <input id="country" name="country" type="text" autocomplete="country-name" maxlength="80"
+               list="countries" placeholder="Start typing, e.g. India" required>
+        <datalist id="countries"></datalist>
+        <p class="note">All four are required. Your information will be used to understand academic
+          adoption and improve the application. It will not be shared or used for marketing without
+          your separate consent. <a href="/privacy" target="_blank" rel="noopener">Privacy notice</a></p>
       </div>
 
       <div class="field">
@@ -67,6 +79,7 @@
           <div class="field">
             <label for="viewpoint">View</label>
             <select id="viewpoint" name="viewpoint"></select>
+            <p id="viewpoint-note" class="note" hidden>Set in the 3D preview</p>
           </div>
           <div class="field">
             <label for="background">Background</label>
@@ -101,36 +114,61 @@
 
     <section class="panel result" aria-labelledby="result-title">
       <h2 id="result-title" class="visually-hidden">Result</h2>
+      <div class="tabs" role="tablist" aria-label="Result">
+        <button type="button" role="tab" id="tab-preview" aria-controls="preview-pane" aria-selected="true">3D preview</button>
+        <button type="button" role="tab" id="tab-image" aria-controls="image-pane" aria-selected="false" tabindex="-1">Image</button>
+      </div>
       <div id="status" class="status" role="status" aria-live="polite" hidden>
         <span class="spinner" aria-hidden="true"></span>
         <span id="status-text"></span>
       </div>
       <div id="error" class="error" role="alert" hidden></div>
-      <figure id="figure" class="figure">
-        <div id="placeholder" class="placeholder">
-          <svg viewBox="0 0 120 80" aria-hidden="true">
-            <circle cx="40" cy="38" r="16"/><circle cx="72" cy="30" r="11"/><circle cx="78" cy="56" r="13"/>
-            <line x1="40" y1="38" x2="72" y2="30"/><line x1="72" y1="30" x2="78" y2="56"/>
-          </svg>
-          <p>Your image will appear here.</p>
+
+      <div id="preview-pane" class="pane" role="tabpanel" aria-labelledby="tab-preview">
+        <div class="viewer-frame" id="viewer-frame">
+          <div id="viewer" class="viewer"></div>
+          <p id="viewer-message" class="viewer-message" aria-live="polite">Enter a PDB ID to see the molecule in 3D.</p>
         </div>
-        <img id="image" alt="" hidden>
-      </figure>
-      <div id="actions" class="actions" hidden>
-        <a id="download" class="button primary" href="#" download>Download PNG</a>
-        <a id="rcsb" class="button" href="#" target="_blank" rel="noopener">View entry on RCSB PDB</a>
-        <span id="meta" class="meta"></span>
+        <p id="viewer-note" class="note" hidden></p>
+        <div class="viewer-bar">
+          <label class="check" for="use_view">
+            <input type="checkbox" id="use_view" disabled>
+            <span>Render this view <small>(turn and zoom the molecule, then render)</small></span>
+          </label>
+          <button type="button" id="reset-view" class="button small" disabled>Reset view</button>
+        </div>
+        <p class="note">Drag to turn, scroll or pinch to zoom, right-drag or two fingers to move.
+          A quick preview by <a href="https://molstar.org" target="_blank" rel="noopener">Mol*</a>;
+          the render adds Blender's lighting and materials.</p>
       </div>
-      <section id="cite" class="cite" aria-labelledby="cite-title" hidden>
-        <div class="cite-head">
-          <h3 id="cite-title">How to cite this image</h3>
-          <button type="button" id="copy-cite" class="button small">Copy</button>
+
+      <div id="image-pane" class="pane" role="tabpanel" aria-labelledby="tab-image" hidden>
+        <figure id="figure" class="figure">
+          <div id="placeholder" class="placeholder">
+            <svg viewBox="0 0 120 80" aria-hidden="true">
+              <circle cx="40" cy="38" r="16"/><circle cx="72" cy="30" r="11"/><circle cx="78" cy="56" r="13"/>
+              <line x1="40" y1="38" x2="72" y2="30"/><line x1="72" y1="30" x2="78" y2="56"/>
+            </svg>
+            <p>Your image will appear here.</p>
+          </div>
+          <img id="image" alt="" hidden>
+        </figure>
+        <div id="actions" class="actions" hidden>
+          <a id="download" class="button primary" href="#" download>Download PNG</a>
+          <a id="rcsb" class="button" href="#" target="_blank" rel="noopener">View entry on RCSB PDB</a>
+          <span id="meta" class="meta"></span>
         </div>
-        <p class="cite-label">For the figure legend or methods:</p>
-        <p id="cite-legend" class="cite-text"></p>
-        <p class="cite-label">References:</p>
-        <ol id="cite-refs" class="cite-text"></ol>
-      </section>
+        <section id="cite" class="cite" aria-labelledby="cite-title" hidden>
+          <div class="cite-head">
+            <h3 id="cite-title">How to cite this image</h3>
+            <button type="button" id="copy-cite" class="button small">Copy</button>
+          </div>
+          <p class="cite-label">For the figure legend or methods:</p>
+          <p id="cite-legend" class="cite-text"></p>
+          <p class="cite-label">References:</p>
+          <ol id="cite-refs" class="cite-text"></ol>
+        </section>
+      </div>
     </section>
   </main>
 
@@ -142,11 +180,14 @@
     <p>
       Images are rendered with <a href="https://github.com/BradyAJohnston/MolecularNodes" target="_blank" rel="noopener">Molecular Nodes</a>
       by Brady Johnston and contributors, and <a href="https://www.blender.org" target="_blank" rel="noopener">Blender</a>.
-      Structures come from the <a href="https://www.rcsb.org" target="_blank" rel="noopener">RCSB Protein Data Bank</a>.
+      Structures come from the <a href="https://www.rcsb.org" target="_blank" rel="noopener">RCSB Protein Data Bank</a>;
+      the 3D preview uses <a href="https://molstar.org" target="_blank" rel="noopener">Mol*</a> (MIT licence).
       If you publish an image, please cite this tool, Molecular Nodes and the PDB entry; each result shows how.
     </p>
+    <p><a href="/privacy" target="_blank" rel="noopener">Privacy notice</a></p>
   </footer>
 
+  <script src="/static/preview.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

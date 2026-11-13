@@ -37,7 +37,8 @@ def run(posts, existing=None, get=False):
 def a_row(name="Ada Lovelace", source=None):
     req = RenderRequest(pdb_id="4hhb")
     job = Job(req, req.cache_key(), "c", status="done", started_at=1.0, finished_at=22.4)
-    row = sheet.record_row(job, Submitter(name, "ada@example.org", "https://x.modal.run", 1_700_000_000.25))
+    row = sheet.record_row(job, Submitter(name, "ada@example.org", "https://x.modal.run", 1_700_000_000.25,
+                                          institution="IISc", country="India"))
     if source:
         row["source"] = source
     return row
@@ -52,11 +53,14 @@ def test_website_rows_are_written_under_a_header():
     assert out["replies"][0] == {"ok": True, "added": 1}
     assert out["replies"][1]["ok"] is True  # doGet: deployment check
     header, row = out["rows"]
-    assert header[0] == "Time" and header[-1] == "Source" and len(header) == len(sheet.ROW_KEYS)
+    assert header[0] == "Time" and header[-3:] == ["Source", "Institution", "Country"]
+    assert len(header) == len(sheet.ROW_KEYS)
     assert row[0] == {"date": 1_700_000_000_250}
     assert row[column("name")] == "Ada Lovelace"
     assert row[column("render_s")] == 21.4  # numbers stay numbers
     assert row[column("source")] == "Web app"
+    assert (row[column("institution")], row[column("country")]) == ("IISc", "India")
+    assert header[-2:] == ["Institution", "Country"]
     assert out["bold"]
 
 
@@ -92,6 +96,7 @@ def test_sheet_from_the_older_script_gets_the_new_header():
     old_row = ["2026-11-04", "Old visitor"] + [""] * (len(old_header) - 2)
     out = run([{"token": TOKEN, "rows": [a_row()]}], existing=[old_header, old_row])
     header, kept, new = out["rows"]
-    assert header[-1] == "Source" and header[:-1] == old_header
+    assert header[:len(old_header)] == old_header
+    assert header[len(old_header):] == ["Source", "Institution", "Country"]
     assert kept[1] == "Old visitor"
     assert new[column("source")] == "Web app"

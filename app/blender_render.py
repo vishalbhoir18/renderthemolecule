@@ -13,40 +13,155 @@ Unexpected failures exit non-zero with a traceback on stderr.
 from __future__ import annotations
 
 import json
+import math
 import sys
 import time
 from pathlib import Path
 
 from app import about
-from app.options import ATOMIC_STYLES, BACKBONE_STYLES, BACKGROUND_RGB
+from app.options import (
+    ATOMIC_STYLES,
+    BACKBONE_STYLES,
+    BACKGROUND_RGB,
+    CHAIN_COLORS,
+    NON_POLYMER_RAINBOW_COLOR,
+    RAINBOW_COLORS,
+)
 
 # Non-polymer, non-water atoms: ligands, cofactors, ions.
 LIGAND_SELECTION = "not protein and not nucleic and not water"
+# Molecular Nodes places atoms at their file coordinates (ångström) times this,
+# in an object at the origin with no rotation.
+WORLD_SCALE = 0.1
 
 
 class UserFacingError(Exception):
     pass
 
 
+# Lighting, set to look as lifelike as the 3D preview. Three sun lights turn with the camera,
+# as Mol*'s light does, so every view is lit alike: (pitch, yaw) in degrees away from the view
+# direction, and strength. Key light from the upper left, fill from the right, rim from behind.
+LIGHTS = ((-35, -30, 3.5), (10, 50, 1.0), (210, 20, 1.5))
+WORLD_STRENGTH = 0.6  # soft light from all around, so shadows are not black
+GLOSSY_ROUGHNESS = 0.35  # crisper highlights than Molecular Nodes' 0.5
+# Shows colours as chosen. Blender's default (AgX) turns strong colours pastel.
+VIEW_TRANSFORM = "Khronos PBR Neutral"
+
+
 def _material(mn, name: str):
+    if name == "default":
+        return mn.material.Default(roughness=GLOSSY_ROUGHNESS)
     return {
         "ambient_occlusion": mn.material.AmbientOcclusion,
-        "default": mn.material.Default,
         "flat": mn.material.Flat,
         "squishy": mn.material.Squishy,
     }[name]()
 
 
+def light_scene(canvas) -> None:
+    """Studio lighting relative to the camera, and colour management (see LIGHTS).
+
+    "Ambient occlusion" and "Flat" are self-lit and only take the colour management.
+    """
+    import bpy
+    from mathutils import Euler
+
+    canvas.scene.view_settings.view_transform = VIEW_TRANSFORM
+    canvas.scene.view_settings.look = "None"
+    bpy.context.view_layer.update()  # so the camera's matrix reflects look_at
+    camera = canvas.scene.camera.matrix_world.to_3x3().normalized()
+    suns = sorted((o for o in canvas.scene.objects if o.type == "LIGHT"), key=lambda o: o.name)
+    for sun, (pitch, yaw, energy) in zip(suns, LIGHTS):
+        rotation = camera @ Euler((math.radians(pitch), math.radians(yaw), 0)).to_matrix()
+        sun.matrix_world = rotation.to_4x4()
+        sun.data.energy = energy
+    world = canvas.scene.world
+    for node in world.node_tree.nodes if world and world.node_tree else ():
+        if node.type == "GROUP" and "HDRI Strength" in node.inputs:
+            node.inputs["HDRI Strength"].default_value = WORLD_STRENGTH
+
+
+# Per-atom colour attributes computed here (see chain_colors and rainbow_colors).
+CHAIN_COLOR_ATTRIBUTE = "rtm_chain_color"
+RAINBOW_ATTRIBUTE = "rtm_rainbow"
+
+
 def _color(name: str):
     from molecularnodes.nodes import geometry as mg
+    from nodebpy import geometry as g
 
     return {
-        "default": None,  # keep Molecular Nodes' own per-chain / element colours
-        "rainbow": lambda: mg.ColorRainbow(),
+        "default": None,  # the "Color" attribute: carbons by chain, other atoms by element
+        "rainbow": RAINBOW_ATTRIBUTE,  # an attribute name: Molecular Nodes reads it as the colour
         "secondary_structure": lambda: mg.ColorSecondaryStructure(),
-        # Goodsell needs a base colour: soft per-chain colours, carbons darkened.
-        "goodsell": lambda: mg.ColorGoodsell(color=mg.RandomColor(mg.ChainID(), 3)),
+        # Goodsell: every atom in its chain's colour (the same as "By chain"), carbons darkened.
+        "goodsell": lambda: mg.ColorGoodsell(color=g.NamedAttribute.color(CHAIN_COLOR_ATTRIBUTE).o.attribute),
     }[name]
+
+
+def chain_colors(chain_ids):
+    """Each atom's chain colour from CHAIN_COLORS, as linear RGBA (Blender's colour space).
+
+    Chains take the colours in the order of their sorted IDs; the 3D preview
+    (app/static/preview.js) does the same, so both show the same colours.
+    """
+    import numpy as np
+
+    palette = [srgb_to_linear(hex_color) + (1.0,) for hex_color in CHAIN_COLORS]
+    ids, index = np.unique(np.asarray(chain_ids).astype(str), return_inverse=True)
+    table = np.array([palette[i % len(palette)] for i in range(len(ids))])
+    return table[index.reshape(-1)]
+
+
+def rainbow_colors(chain_ids, res_ids, polymer):
+    """Each atom's "Rainbow" colour, as linear RGBA.
+
+    Along each chain's protein or nucleic acid residues, from RAINBOW_COLORS[0] at the
+    lowest residue number to the last colour at the highest, blended in sRGB as the 3D
+    preview does (app/static/preview.js). Other atoms are grey.
+    """
+    import numpy as np
+
+    chain_ids = np.asarray(chain_ids).astype(str)
+    res_ids = np.asarray(res_ids, dtype=float)
+    polymer = np.asarray(polymer, dtype=bool)
+    t = np.zeros(len(res_ids))
+    for chain in np.unique(chain_ids[polymer]):
+        sel = polymer & (chain_ids == chain)
+        low, high = res_ids[sel].min(), res_ids[sel].max()
+        t[sel] = (res_ids[sel] - low) / (high - low) if high > low else 0.0
+    stops = np.array([[int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)] for h in RAINBOW_COLORS])
+    positions = np.linspace(0, 1, len(stops))
+    srgb = np.stack([np.interp(t, positions, stops[:, c]) for c in range(3)], axis=1)
+    grey = [int(NON_POLYMER_RAINBOW_COLOR[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    srgb[~polymer] = grey
+    linear = np.where(srgb <= 0.04045, srgb / 12.92, ((srgb + 0.055) / 1.055) ** 2.4)
+    return np.concatenate([linear, np.ones((len(linear), 1))], axis=1)
+
+
+def srgb_to_linear(hex_color: str) -> tuple[float, float, float]:
+    channels = (int(hex_color[i:i + 2], 16) / 255 for i in (1, 3, 5))
+    return tuple(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in channels)
+
+
+def apply_chain_colors(mol, color: str) -> None:
+    """Colour chains with CHAIN_COLORS instead of Molecular Nodes' own hues.
+
+    Molecular Nodes' "Color" attribute (used by "By chain" and by ligands drawn over
+    a cartoon) keeps carbons by chain and other elements in their usual colours.
+    """
+    colors = chain_colors(mol.universe.atoms.chainIDs)
+    current = mol.named_attribute("Color")
+    carbon = mol.named_attribute("atomic_number") == 6
+    current[carbon] = colors[carbon]
+    mol.store_named_attribute(current, "Color", atype="FLOAT_COLOR")
+    if color == "goodsell":
+        mol.store_named_attribute(colors, CHAIN_COLOR_ATTRIBUTE, atype="FLOAT_COLOR")
+    elif color == "rainbow":
+        polymer = mol.named_attribute("is_peptide") | mol.named_attribute("is_nucleic")
+        rainbow = rainbow_colors(mol.universe.atoms.chainIDs, mol.named_attribute("res_id"), polymer)
+        mol.store_named_attribute(rainbow, RAINBOW_ATTRIBUTE, atype="FLOAT_COLOR")
 
 
 def render(spec: dict) -> dict:
@@ -65,6 +180,7 @@ def render(spec: dict) -> dict:
 
     mol = mn.Molecule.load(spec["structure_path"])
     n_atoms = mol.universe.atoms.n_atoms
+    apply_chain_colors(mol, spec["color"])
 
     copies = 1
     if spec["assembly"]:
@@ -110,7 +226,11 @@ def render(spec: dict) -> dict:
                 assembly=spec["assembly"],
             )
 
-    canvas.look_at(mol, viewpoint=spec["viewpoint"])
+    if spec.get("camera"):
+        place_camera(canvas.scene.camera, spec["camera"])
+    else:
+        canvas.look_at(mol, viewpoint=spec["viewpoint"])
+    light_scene(canvas)
     timings["setup_s"] = round(time.monotonic() - t0, 1)
 
     output = Path(spec["output_path"])
@@ -122,6 +242,47 @@ def render(spec: dict) -> dict:
     finish_image(raw, output, spec, about.versions())
     raw.unlink(missing_ok=True)
     return {"atoms": estimated, **timings}
+
+
+def camera_matrix(camera: dict, world_scale: float = WORLD_SCALE) -> list[list[float]]:
+    """4×4 world matrix of a Blender camera matching a Mol* camera.
+
+    A Blender camera looks down its local -Z with +Y up, so its matrix holds
+    the columns (right, up, -forward, position).
+    """
+    position = [x * world_scale for x in camera["position"]]
+    target = [x * world_scale for x in camera["target"]]
+    forward = _normalized([t - p for t, p in zip(target, position)])
+    right = _normalized(_cross(forward, camera["up"]))
+    up = _cross(right, forward)
+    columns = [right, up, [-x for x in forward], position]
+    return [[columns[c][r] for c in range(4)] for r in range(3)] + [[0.0, 0.0, 0.0, 1.0]]
+
+
+def place_camera(camera_object, camera: dict) -> None:
+    """Point the scene camera exactly as the 3D preview did."""
+    from mathutils import Matrix
+
+    camera_object.matrix_world = Matrix(camera_matrix(camera))
+    data = camera_object.data
+    data.type = "PERSP"
+    data.shift_x = data.shift_y = 0.0
+    # Mol*'s field of view is vertical; fitting the sensor vertically keeps
+    # the same framing whatever the image's width.
+    data.sensor_fit = "VERTICAL"
+    data.angle_y = math.radians(camera["fov"])
+    distance = math.dist(camera["position"], camera["target"]) * WORLD_SCALE
+    data.clip_start = 0.01
+    data.clip_end = max(data.clip_end, distance * 20)
+
+
+def _cross(a, b) -> list[float]:
+    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+
+
+def _normalized(v) -> list[float]:
+    length = math.hypot(*v)
+    return [x / length for x in v]
 
 
 def finish_image(raw: Path, output: Path, spec: dict, versions: dict[str, str]) -> None:
