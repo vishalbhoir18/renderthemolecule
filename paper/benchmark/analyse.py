@@ -162,6 +162,7 @@ def build_figures(data: list[dict]) -> None:
 
     gallery = []
     for pdb, style, label in (
+        ("1UBQ", "cartoon", "1UBQ ubiquitin, cartoon"),
         ("1BNA", "cartoon", "1BNA B-DNA, cartoon"), ("1EHZ", "cartoon", "1EHZ tRNA, cartoon"),
         ("6VXX", "surface", "6VXX spike, surface"), ("1AON", "surface", "1AON GroEL-GroES, surface"),
         ("4UG0", "cartoon", "4UG0 80S ribosome, cartoon"), ("3J3Q", "cartoon", "3J3Q HIV-1 capsid, cartoon"),
@@ -172,8 +173,11 @@ def build_figures(data: list[dict]) -> None:
     asm = find(data, experiment="E5", pdb_id="1CD3", style="surface", assembly="1")
     if asm:
         gallery.append((asm, "1CD3 phiX174 procapsid, 60-mer"))
+
+    capsid = [g for g in gallery if g[1].startswith("3J3Q")]
+    gallery = [g for g in gallery if not g[1].startswith("3J3Q")] + capsid
     if gallery:
-        montage(gallery, 3, 520, FIG / "figure4_gallery.png", crop_credit=False)
+        montage(gallery, 4, 480, FIG / "figure4_gallery.png", crop_credit=False)
 
 
 def plots(data: list[dict], quality: list[dict]) -> None:
@@ -211,7 +215,7 @@ def plots(data: list[dict], quality: list[dict]) -> None:
     axes[1].set_xlabel("Atoms rendered (log scale)")
     axes[1].set_xscale("log")
     axes[1].set_xlim(100, 4e6)
-    axes[0].set_ylim(0, 190)
+    axes[0].set_ylim(0, max(float(r["wall_s"]) for r in e1) * 1.08)
     axes[1].set_ylim(0, 15)
     axes[1].xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(
         lambda v, _: f"{v / 1e6:g}M" if v >= 1e6 else f"{v / 1e3:g}k" if v >= 1e3 else f"{v:g}"))
@@ -238,7 +242,8 @@ def plots(data: list[dict], quality: list[dict]) -> None:
                 ax.annotate(f"{ni}", (xi, yi), textcoords="offset points", xytext=(6, 4), fontsize=7)
         ax.set_xlabel("Path-tracing time (s)")
         ax.set_ylabel("Foreground PSNR vs 512 samples (dB)")
-        ax.set_ylim(39, 52)
+        vals = [q["psnr_fg_db"] for q in quality if q["psnr_fg_db"] is not None]
+        ax.set_ylim(min(vals) - 1.5, max(vals) + 1.5)
         ax.legend(frameon=False, fontsize=8)
         fig.tight_layout()
         for ext in ("png", "pdf"):

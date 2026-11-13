@@ -10,7 +10,7 @@ Barker, M., Chue Hong, N. P., Katz, D. S., Lamprecht, A., Martinez-Ortiz, C., Ps
 
 Berman, H. M., Westbrook, J., Feng, Z., Gilliland, G., Bhat, T. N., Weissig, H., Shindyalov, I. N., & Bourne, P. E. (2000). The Protein Data Bank. *Nucleic Acids Research*, *28*(1), 235–242. <https://doi.org/10.1093/nar/28.1.235>
 
-Bhoir, V. (2026). *Render the Molecule* (Version 0.1.0) \[Computer software\]. Zenodo. <https://doi.org/10.5281/zenodo.23960655>
+Bhoir, V. (2026). *Render the Molecule* (Version 0.2.0) \[Computer software\]. Zenodo. DOI to be assigned on release; version 0.1.0: <https://doi.org/10.5281/zenodo.23960655>
 
 Bittrich, S., Bhikadiya, C., Bi, C., Chao, H., Duarte, J. M., Dutta, S., Fayazi, M., Henry, J., Khokhriakov, I., Lowe, R., Piehl, D. W., Segura, J., Vallat, B., Voigt, M., Westbrook, J. D., Burley, S. K., & Rose, Y. (2023). RCSB Protein Data Bank: Efficient searching and simultaneous access to one million computed structure models alongside the PDB structures enabled by architectural advances. *Journal of Molecular Biology*, *435*(14), 167994. <https://doi.org/10.1016/j.jmb.2023.167994>
 
@@ -103,3 +103,5 @@ Wang, Z., Bovik, A. C., Sheikh, H. R., & Simoncelli, E. P. (2004). Image quality
 Westbrook, J. D., Young, J. Y., Shao, C., Feng, Z., Guranovic, V., Lawson, C. L., Vallat, B., Adams, P. D., Berrisford, J. M., Bricogne, G., Diederichs, K., Joosten, R. P., Keller, P., Moriarty, N. W., Sobolev, O. V., Velankar, S., Vonrhein, C., Waterman, D. G., Kurisu, G., . . . Peisach, E. (2022). PDBx/mmCIF ecosystem: Foundational semantic tools for structural biology. *Journal of Molecular Biology*, *434*(11), 167599. <https://doi.org/10.1016/j.jmb.2022.167599>
 
 Wilkinson, M. D., Dumontier, M., Aalbersberg, I. J., Appleton, G., Axton, M., Baak, A., Blomberg, N., Boiten, J., da Silva Santos, L. B., Bourne, P. E., Bouwman, J., Brookes, A. J., Clark, T., Crosas, M., Dillo, I., Dumon, O., Edmunds, S., Evelo, C. T., Finkers, R., . . . Mons, B. (2016). The FAIR Guiding Principles for scientific data management and stewardship. *Scientific Data*, *3*(1), 160018. <https://doi.org/10.1038/sdata.2016.18>
+
+Wong, B. (2011). Points of view: Color blindness. *Nature Methods*, *8*(6), 441. <https://doi.org/10.1038/nmeth.1618>

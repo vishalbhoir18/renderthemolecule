@@ -1,0 +1,189 @@
+{
+  "n_renders": 71,
+  "status_counts": {
+    "ok": 69,
+    "refused": 2
+  },
+  "image_quality": [
+    {
+      "pdb_id": "4HHB",
+      "style": "cartoon",
+      "quality": "draft",
+      "samples": 16,
+      "render_s": 20.9,
+      "wall_s": 26.6,
+      "ssim": 0.994,
+      "psnr_db": 40.09,
+      "foreground_fraction": 0.405,
+      "ssim_fg": 0.9854,
+      "psnr_fg_db": 36.16
+    },
+    {
+      "pdb_id": "4HHB",
+      "style": "cartoon",
+      "quality": "standard",
+      "samples": 32,
+      "render_s": 39.1,
+      "wall_s": 44.7,
+      "ssim": 0.9962,
+      "psnr_db": 43.0,
+      "foreground_fraction": 0.405,
+      "ssim_fg": 0.9906,
+      "psnr_fg_db": 39.07
+    },
+    {
+      "pdb_id": "4HHB",
+      "style": "cartoon",
+      "quality": "high",
+      "samples": 64,
+      "render_s": 71.0,
+      "wall_s": 76.9,
+      "ssim": 0.9974,
+      "psnr_db": 45.56,
+      "foreground_fraction": 0.405,
+      "ssim_fg": 0.9937,
+      "psnr_fg_db": 41.63
+    },
+    {
+      "pdb_id": "4HHB",
+      "style": "cartoon",
+      "quality": "reference",
+      "samples": 512,
+      "render_s": 389.1,
+      "wall_s": 395.7,
+      "ssim": 1.0,
+      "psnr_db": null,
+      "foreground_fraction": 0.405,
+      "ssim_fg": 1.0,
+      "psnr_fg_db": null
+    },
+    {
+      "pdb_id": "1AON",
+      "style": "surface",
+      "quality": "draft",
+      "samples": 16,
+      "render_s": 29.8,
+      "wall_s": 45.3,
+      "ssim": 0.9918,
+      "psnr_db": 42.82,
+      "foreground_fraction": 0.318,
+      "ssim_fg": 0.9741,
+      "psnr_fg_db": 37.84
+    },
+    {
+      "pdb_id": "1AON",
+      "style": "surface",
+      "quality": "standard",
+      "samples": 32,
+      "render_s": 45.5,
+      "wall_s": 61.3,
+      "ssim": 0.9947,
+      "psnr_db": 45.22,
+      "foreground_fraction": 0.318,
+      "ssim_fg": 0.9833,
+      "psnr_fg_db": 40.25
+    },
+    {
+      "pdb_id": "1AON",
+      "style": "surface",
+      "quality": "high",
+      "samples": 64,
+      "render_s": 77.3,
+      "wall_s": 93.7,
+      "ssim": 0.9966,
+      "psnr_db": 47.46,
+      "foreground_fraction": 0.318,
+      "ssim_fg": 0.9895,
+      "psnr_fg_db": 42.48
+    },
+    {
+      "pdb_id": "1AON",
+      "style": "surface",
+      "quality": "reference",
+      "samples": 512,
+      "render_s": 328.3,
+      "wall_s": 343.4,
+      "ssim": 1.0,
+      "psnr_db": null,
+      "foreground_fraction": 0.318,
+      "ssim_fg": 1.0,
+      "psnr_fg_db": null
+    }
+  ],
+  "repeatability": {
+    "identical_files": true,
+    "max_abs_diff": 0,
+    "fraction_pixels_differing": 0.0,
+    "mean_abs_diff": 0.0,
+    "render_s": [
+      40.2,
+      40.1
+    ]
+  },
+  "preview_agreement": [
+    {
+      "pdb_id": "1AON",
+      "view": "moved",
+      "iou": 0.822,
+      "centre_offset_pct": 0.36,
+      "area_ratio": 1.21,
+      "height_ratio": 1.003
+    },
+    {
+      "pdb_id": "1AON",
+      "view": "preset",
+      "iou": 0.486,
+      "centre_offset_pct": 2.62,
+      "area_ratio": 1.841,
+      "height_ratio": 1.293
+    },
+    {
+      "pdb_id": "1BNA",
+      "view": "moved",
+      "iou": 0.579,
+      "centre_offset_pct": 0.83,
+      "area_ratio": 1.629,
+      "height_ratio": 1.05
+    },
+    {
+      "pdb_id": "1BNA",
+      "view": "preset",
+      "iou": 0.438,
+      "centre_offset_pct": 0.21,
+      "area_ratio": 1.987,
+      "height_ratio": 1.079
+    },
+    {
+      "pdb_id": "1EMA",
+      "view": "moved",
+      "iou": 0.661,
+      "centre_offset_pct": 0.42,
+      "area_ratio": 1.449,
+      "height_ratio": 1.025
+    },
+    {
+      "pdb_id": "1EMA",
+      "view": "preset",
+      "iou": 0.321,
+      "centre_offset_pct": 2.37,
+      "area_ratio": 2.122,
+      "height_ratio": 1.251
+    },
+    {
+      "pdb_id": "4HHB",
+      "view": "moved",
+      "iou": 0.726,
+      "centre_offset_pct": 0.25,
+      "area_ratio": 1.35,
+      "height_ratio": 1.009
+    },
+    {
+      "pdb_id": "4HHB",
+      "view": "preset",
+      "iou": 0.326,
+      "centre_offset_pct": 0.42,
+      "area_ratio": 2.481,
+      "height_ratio": 1.383
+    }
+  ]
+}
