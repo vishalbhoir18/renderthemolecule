@@ -303,31 +303,35 @@ def preview_agreement(data: list[dict]) -> list[dict]:
 
 
 def preview_figure(data: list[dict]) -> None:
-    """Supplementary Figure S2: preview (top) and render (bottom) of each E8 view."""
-    pairs = []
-    for r in sorted((r for r in data if r["experiment"] == "E8" and r["status"] == "ok"),
-                    key=lambda r: (r["pdb_id"], "camera=" in r["run_id"])):
-        view = "moved" if "camera=" in r["run_id"] else "preset"
-        prev = HERE / "preview" / f"{r['pdb_id']}_{view}.png"
-        if prev.exists():
-            pairs.append((prev, ROOT / r["image"], f"{r['pdb_id']} {'turned view' if view == 'moved' else 'preset view'}"))
-    if not pairs:
+    """Supplementary Figure S2: rows = preset preview, preset render, turned preview, turned render."""
+    renders = {}
+    for r in data:
+        if r["experiment"] == "E8" and r["status"] == "ok":
+            view = "moved" if "camera=" in r["run_id"] else "preset"
+            renders[(r["pdb_id"], view)] = ROOT / r["image"]
+    entries = sorted({pdb for pdb, _ in renders})
+    if not entries:
         return
-    tw, th = 360, 203
-    pad, cap = 10, 26
-    sheet = Image.new("RGB", (len(pairs) * (tw + pad) + pad, 2 * th + cap + 3 * pad + 24), "white")
+    rows = [("preset", "preview", "Preset view: Mol* preview"), ("preset", "render", "Preset view: Blender render"),
+            ("moved", "preview", "Turned view: Mol* preview"), ("moved", "render", "Turned view: Blender render")]
+    tw, th, pad, left, top = 360, 203, 10, 210, 34
+    sheet = Image.new("RGB", (left + len(entries) * (tw + pad), top + len(rows) * (th + pad) + pad), "white")
     draw = ImageDraw.Draw(sheet)
-    draw.text((pad, 4), "Top: Mol* 3D preview   Bottom: Blender render of the same view", fill=(40, 40, 40), font=label_font(16))
-    for i, (prev, rend, label) in enumerate(pairs):
-        x = pad + i * (tw + pad)
-        for j, path in enumerate((prev, rend)):
+    for c, pdb in enumerate(entries):
+        draw.text((left + c * (tw + pad) + tw // 2 - 24, 8), pdb, fill=(30, 30, 30), font=label_font(20))
+    for r_i, (view, kind, label) in enumerate(rows):
+        y = top + r_i * (th + pad)
+        for i, line in enumerate(label.split(": ")):
+            draw.text((10, y + th // 2 - 20 + 24 * i), line + (":" if i == 0 else ""), fill=(40, 40, 40), font=label_font(17))
+        for c, pdb in enumerate(entries):
+            path = HERE / "preview" / f"{pdb}_{view}.png" if kind == "preview" else renders.get((pdb, view))
+            if path is None or not Path(path).exists():
+                continue
             tile = Image.open(path).convert("RGB").resize((tw, th), Image.LANCZOS)
-            y = 24 + pad + j * (th + pad)
+            x = left + c * (tw + pad)
             sheet.paste(tile, (x, y))
             draw.rectangle([x, y, x + tw - 1, y + th - 1], outline=(215, 215, 215))
-        draw.text((x, 24 + pad + 2 * (th + pad)), label, fill=(40, 40, 40), font=label_font(15))
-    sheet.save(FIG / "figureS2_preview_vs_render.png", optimize=True)
-
+    sheet.save(FIG / "figure6_preview_vs_render.png", optimize=True)
 
 def main() -> None:
     data = rows()
