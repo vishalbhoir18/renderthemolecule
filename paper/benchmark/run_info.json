@@ -1,0 +1,13 @@
+{
+  "date": "2026-11-13",
+  "commit": "da9c9f9f7b6c932b35aa6b0d0ff8e15ea053bf54",
+  "versions": {
+    "app": "0.1.0",
+    "molecularnodes": "520.2.0",
+    "blender": "5.2.2"
+  },
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+  "threads": 4,
+  "python": "3.13.18",
+  "memory_gb": 15.7
+}

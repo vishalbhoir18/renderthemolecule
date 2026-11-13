@@ -266,6 +266,69 @@ def sample_crops(data: list[dict]) -> None:
     sheet.save(FIG / "figureS1_sample_crops.png", optimize=True)
 
 
+def silhouette(img: Image.Image, size: tuple[int, int]) -> np.ndarray:
+    """Pixels that are not white background, after resizing to ``size`` (2 px border dropped)."""
+    a = np.asarray(img.convert("RGB").resize(size, Image.BILINEAR), dtype=np.int16)
+    mask = (a < 235).any(axis=2)
+    mask[:2, :] = mask[-2:, :] = False
+    mask[:, :2] = mask[:, -2:] = False
+    return mask
+
+
+def preview_agreement(data: list[dict]) -> list[dict]:
+    """E8: overlap of the Mol* preview and the Blender render of the same view."""
+    out = []
+    for r in data:
+        if r["experiment"] != "E8" or r["status"] != "ok":
+            continue
+        view = "moved" if "camera=" in r["run_id"] else "preset"
+        prev_path = HERE / "preview" / f"{r['pdb_id']}_{view}.png"
+        if not prev_path.exists():
+            continue
+        prev = Image.open(prev_path)
+        a = silhouette(prev, prev.size)
+        b = silhouette(Image.open(ROOT / r["image"]), prev.size)
+        inter, union = (a & b).sum(), (a | b).sum()
+        ya, xa = np.nonzero(a)
+        yb, xb = np.nonzero(b)
+        w, h = prev.size
+        out.append({
+            "pdb_id": r["pdb_id"], "view": view,
+            "iou": round(float(inter / union), 3),
+            "centre_offset_pct": round(float(np.hypot(xa.mean() - xb.mean(), ya.mean() - yb.mean()) / w * 100), 2),
+            "area_ratio": round(float(b.sum() / a.sum()), 3),
+            "height_ratio": round(float((yb.max() - yb.min()) / (ya.max() - ya.min())), 3),
+        })
+    return out
+
+
+def preview_figure(data: list[dict]) -> None:
+    """Supplementary Figure S2: preview (top) and render (bottom) of each E8 view."""
+    pairs = []
+    for r in sorted((r for r in data if r["experiment"] == "E8" and r["status"] == "ok"),
+                    key=lambda r: (r["pdb_id"], "camera=" in r["run_id"])):
+        view = "moved" if "camera=" in r["run_id"] else "preset"
+        prev = HERE / "preview" / f"{r['pdb_id']}_{view}.png"
+        if prev.exists():
+            pairs.append((prev, ROOT / r["image"], f"{r['pdb_id']} {'turned view' if view == 'moved' else 'preset view'}"))
+    if not pairs:
+        return
+    tw, th = 360, 203
+    pad, cap = 10, 26
+    sheet = Image.new("RGB", (len(pairs) * (tw + pad) + pad, 2 * th + cap + 3 * pad + 24), "white")
+    draw = ImageDraw.Draw(sheet)
+    draw.text((pad, 4), "Top: Mol* 3D preview   Bottom: Blender render of the same view", fill=(40, 40, 40), font=label_font(16))
+    for i, (prev, rend, label) in enumerate(pairs):
+        x = pad + i * (tw + pad)
+        for j, path in enumerate((prev, rend)):
+            tile = Image.open(path).convert("RGB").resize((tw, th), Image.LANCZOS)
+            y = 24 + pad + j * (th + pad)
+            sheet.paste(tile, (x, y))
+            draw.rectangle([x, y, x + tw - 1, y + th - 1], outline=(215, 215, 215))
+        draw.text((x, 24 + pad + 2 * (th + pad)), label, fill=(40, 40, 40), font=label_font(15))
+    sheet.save(FIG / "figureS2_preview_vs_render.png", optimize=True)
+
+
 def main() -> None:
     data = rows()
     summary = {
@@ -273,10 +336,12 @@ def main() -> None:
         "status_counts": {s: sum(r["status"] == s for r in data) for s in sorted({r["status"] for r in data})},
         "image_quality": image_quality(data),
         "repeatability": repeatability(data),
+        "preview_agreement": preview_agreement(data),
     }
     (HERE / "summary.json").write_text(json.dumps(summary, indent=2))
     build_figures(data)
     sample_crops(data)
+    preview_figure(data)
     plots(data, summary["image_quality"])
     print(json.dumps(summary, indent=2))
 

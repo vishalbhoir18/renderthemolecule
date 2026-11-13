@@ -75,6 +75,17 @@ def experiments() -> dict[str, list[dict]]:
                for s in ("cartoon", "surface") for a in (False, True)]
     # E6: repeatability: identical requests rendered twice.
     e["E6"] = [{"pdb_id": "4hhb", "style": "cartoon", "tag": f"rep{i}"} for i in (1, 2)]
+    # E8: the Mol* preview against the render (paper/benchmark/capture_previews.js):
+    # each entry in its preset view (no camera sent) and in a turned view (camera sent).
+    cams_path = HERE / "preview" / "cameras.json"
+    cams = json.loads(cams_path.read_text()) if cams_path.exists() else {}
+    e["E8"] = []
+    for key, cam in sorted(cams.items()):
+        pdb, view = key.split("_")
+        cfg = {"pdb_id": pdb.lower(), "style": "cartoon", "credit": False, "tag": view}
+        if view == "moved":
+            cfg["camera"] = cam
+        e["E8"].append(cfg)
     # E7: output resolution.
     e["E7"] = [{"pdb_id": "4hhb", "style": "cartoon", "resolution": r}
                for r in ("800x800", "1280x720", "1080x1080", "1920x1080")]
@@ -164,8 +175,20 @@ def _wait(proc: subprocess.Popen, timeout: float):
         time.sleep(0.2)
 
 
+def write_run_info() -> None:
+    """Record what was benchmarked: commit, versions and hardware."""
+    from app import about
+    commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    cpu = next((l.split(":", 1)[1].strip() for l in open("/proc/cpuinfo") if l.startswith("model name")), "")
+    info = {"date": time.strftime("%Y-%m-%d"), "commit": commit, "versions": about.versions(),
+            "cpu": cpu, "threads": SETTINGS.threads(), "python": platform.python_version(),
+            "memory_gb": round(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 2**30, 1)}
+    (HERE / "run_info.json").write_text(json.dumps(info, indent=2))
+
+
 def main(selected: list[str]) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
+    write_run_info()
     SETTINGS.ensure_dirs()
     done = set()
     if CSV_PATH.exists():

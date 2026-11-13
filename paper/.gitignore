@@ -2,3 +2,4 @@
 benchmark/.cache/
 benchmark/run.log
 benchmark/renders/
+benchmark/v0.1.0/renders/
