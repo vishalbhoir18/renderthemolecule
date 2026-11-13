@@ -375,13 +375,13 @@ Every image carries its credits in two ways:
 After each render the page shows a **"How to cite this image"** box with a copy button. For
 PDB entry 4HHB it reads:
 
-> The structure of PDB entry 4HHB was rendered with Render the Molecule (v0.1.0; Bhoir, 2026)
+> The structure of PDB entry 4HHB was rendered with Render the Molecule (v0.2.0; Bhoir, 2026)
 > using Molecular Nodes (v520.2.0; Johnston et al.) and Blender (v5.2.2); structure data from
 > the RCSB Protein Data Bank (Berman et al., 2000).
 
 References (APA 7th):
 
-1. Bhoir, V. (2026). *Render the Molecule* (Version 0.1.0) [Web application]. Zenodo. https://doi.org/10.5281/zenodo.23960655
+1. Bhoir, V. (2026). *Render the Molecule* (Version 0.2.0) [Web application]. Zenodo. https://doi.org/10.5281/zenodo.23960655
 2. Johnston, B., & Molecular Nodes contributors. (2026). *Molecular Nodes* (Version 520.2.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.22827864
 3. Blender Online Community. (2026). *Blender* (Version 5.2.2) [Computer software]. Blender Foundation. https://www.blender.org
 4. Berman, H. M., Westbrook, J., Feng, Z., Gilliland, G., Bhat, T. N., Weissig, H., Shindyalov, I. N., & Bourne, P. E. (2000). The Protein Data Bank. *Nucleic Acids Research, 28*(1), 235–242. https://doi.org/10.1093/nar/28.1.235
@@ -392,9 +392,18 @@ The page's own box uses the address of the live site in reference 1. GitHub's **
 repository"** button (from `CITATION.cff`) gives the same reference in APA and BibTeX.
 
 **DOI.** Release v0.1.0 is archived on Zenodo as https://doi.org/10.5281/zenodo.23960655. Zenodo archives
-every new GitHub release automatically and gives it its own DOI; after a release, put the
-new DOI in `APP_DOI` in `app/about.py` and as `doi:` in `CITATION.cff`, and bump
-`APP_VERSION` in `app/about.py` and `version:` in `CITATION.cff` to match.
+every new GitHub release automatically and gives it its own DOI. To make a release:
+
+1. Bump `APP_VERSION` in `app/about.py`, and `version:` and `date-released:` in `CITATION.cff`,
+   so that the archived code already reports the new version. Bump `RENDER_VERSION` in
+   `app/options.py` too, so cached images with the old version in their metadata are not reused.
+   Merge this into `main`.
+2. On GitHub, open **Releases → Draft a new release**, create the tag (for example `v0.2.0`) on
+   `main`, and publish it. Zenodo archives it within minutes and shows its DOI.
+3. Put the new DOI in `APP_DOI` in `app/about.py`, as `doi:` in `CITATION.cff`, in the DOI badge
+   at the top of this README, in the footer of `app/static/index.html`, in `docs/index.html`, and
+   in the tests that quote it (`tests/test_credits.py`, `tests/test_api.py`); then regenerate the
+   notebook (`python notebooks/build_notebook.py`) and run `pytest`.
 
 When a paper about the tool is published, cite the paper instead and keep the Zenodo DOI for
 the exact software version.

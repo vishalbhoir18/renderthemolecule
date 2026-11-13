@@ -16,7 +16,8 @@ from urllib.parse import urlencode
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # Bump when the look of renders changes, so cached images are not reused.
-RENDER_VERSION = "5"  # 2: credit line and PNG metadata; 3: DOI in metadata; 4: chain colours; 5: lighting
+RENDER_VERSION = "6"  # 2: credit line and PNG metadata; 3: DOI in metadata; 4: chain colours; 5: lighting;
+# 6: version 0.2.0 in the metadata
 
 # Chain colours for "By chain" and "Goodsell", given to chains in order of their IDs and
 # repeated after the last: the colour-blind-safe Okabe-Ito palette (Wong, Nature Methods 8,
