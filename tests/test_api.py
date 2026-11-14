@@ -95,6 +95,9 @@ def test_preview_files_are_served_compressed(client):
     page = client.get("/").text
     assert '<script src="/static/preview.js"></script>' in page and 'id="use_view"' in page
     assert client.get("/static/preview.js").status_code == 200
+    # The preset framing is loaded before the preview that uses it.
+    assert page.index('src="/static/framing.js"') < page.index('src="/static/preview.js"')
+    assert client.get("/static/framing.js").status_code == 200
     viewer = client.get("/static/vendor/molstar/molstar.js")
     assert viewer.status_code == 200 and viewer.headers["content-encoding"] == "gzip"
     assert "MIT License" in client.get("/static/vendor/molstar/LICENSE").text
