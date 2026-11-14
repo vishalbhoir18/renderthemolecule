@@ -82,7 +82,8 @@ The page loads [Mol*](https://molstar.org) (MIT licence; the viewer build is in
 structure comes from `GET /api/structure/{id}`, the same download cache the renders use, so
 the browser contacts no other site and the render that follows does not download it again.
 `app/static/preview.js` mirrors the chosen style, colour, ligands, assembly and background,
-keeps the viewer at the image's aspect ratio, and turns to the selected preset view.
+keeps the viewer at the image's aspect ratio, and shows the selected preset view as Blender
+frames it.
 
 Turning or zooming the molecule ticks **Render this view**. The camera is then sent with the
 request as `camera`: position, target and up direction in ångström, in the structure file's
@@ -95,9 +96,19 @@ same cache key. The view is part of the shareable link (`cam=`), the Sheet's *Vi
 `tests/test_render_smoke.py` checks with a real render that the molecule lands where the
 camera puts it.
 
+**Preset views.** While **Render this view** is off, no camera is sent and Blender frames the
+molecule with Molecular Nodes' `canvas.look_at`: the camera turns to the preset direction and,
+with Blender's 50 mm lens (39.6° across the image's longer side), moves as close as it can
+while every point of the drawn geometry stays inside the frame less a 5% margin.
+`app/static/framing.js` runs the same solve on what Mol* draws (mesh vertices, and sphere
+centres grown by their radius, as Molecular Nodes grows its spheres) with the same field of
+view, so the preview shows a preset view as it will be rendered. The request stays a preset:
+its cache key, share link and the Sheet's *View* column are the same as from the API or the
+command line. `tests/test_preview_framing.py` checks the solve against Molecular Nodes in
+Blender.
+
 The preview is approximate in looks (Mol*'s own cartoon and lighting), not in framing or
-colour. When **Render this view** is off, the preset views are framed more tightly by
-Molecular Nodes.
+colour.
 
 **Colours.** Both programs colour the same way, from constants in `app/options.py` that the
 page reads from `/api/options`:
