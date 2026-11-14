@@ -70,6 +70,34 @@ def test_render_this_view(client, recorder, fake_renderer):
     assert again["cached"] and len(fake_renderer.calls) == 1
 
 
+def test_saved_preview_images_are_recorded(client, recorder):
+    resp = client.post("/api/preview-saved", json={**VISITOR, "pdb_id": "1EMA", "style": "surface", "camera": VIEW})
+    assert resp.status_code == 204 and resp.content == b""
+    row = recorder.rows[-1]
+    assert (row["status"], row["cached"], row["render_s"]) == ("preview image", "", "")
+    assert (row["name"], row["pdb_id"], row["style"], row["viewpoint"]) == ("Ada Lovelace", "1EMA", "surface", "3D preview")
+    assert "&cam=149.63%2C50.82" in row["link"]  # "Open again" shows the saved view
+
+
+def test_saved_preview_images_need_the_visitor_details(client, recorder):
+    resp = client.post("/api/preview-saved", json={"pdb_id": "1ema", "name": "Ada"})
+    assert resp.status_code == 422 and "email" in resp.json()["error"]
+    assert recorder.rows == []
+
+
+def test_saved_preview_records_are_limited_per_visitor(client, recorder):
+    from app.main import PREVIEW_RECORDS_LIMIT
+
+    limit = PREVIEW_RECORDS_LIMIT[0]
+    for _ in range(limit):
+        assert client.post("/api/preview-saved", json={**VISITOR, "pdb_id": "1ema"}).status_code == 204
+    assert client.post("/api/preview-saved", json={**VISITOR, "pdb_id": "1ema"}).status_code == 429
+    other = client.post("/api/preview-saved", json={**VISITOR, "pdb_id": "1ema"},
+                        headers={"X-Forwarded-For": "198.51.100.9"})
+    assert other.status_code == 204
+    assert len(recorder.rows) == limit + 1
+
+
 def test_bad_camera_names_the_field(client):
     resp = render(client, pdb_id="1f2n", camera={**VIEW, "fov": 300})
     assert resp.status_code == 422
@@ -112,10 +140,12 @@ def test_index_and_options(client):
     assert 'href="/privacy"' in page.text
     assert 'Render the Molecule <span class="byline">by <a href="https://linktr.ee/thebioway"' in page.text
     assert 'Render the Molecule App developed by <a href="https://linktr.ee/thebioway"' in page.text
-    # The footer's DOI must match the one used in citations (app/about.py).
+    # The footer links the author's ORCID (app/about.py), after the name.
     from app import about
-    doi_url = f"https://doi.org/{about.APP_DOI}"
-    assert f'(<a href="{doi_url}" target="_blank" rel="noopener">{doi_url}</a>)' in page.text
+    orcid = about.AUTHOR_ORCID
+    assert f'(<a href="{orcid}" target="_blank" rel="noopener">{orcid}</a>)' in page.text
+    # "Save preview image", with the Mol* citation next to it.
+    assert 'id="save-preview"' in page.text and "https://doi.org/10.1093/nar/gkab314" in page.text
     assert client.get("/static/app.js").status_code == 200
     opts = client.get("/api/options").json()
     assert {c["value"] for c in opts["choices"]["style"]} >= {"cartoon", "surface"}

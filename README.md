@@ -85,6 +85,15 @@ the browser contacts no other site and the render that follows does not download
 keeps the viewer at the image's aspect ratio, and shows the selected preset view as Blender
 frames it.
 
+**Save preview image** downloads the Mol* view as a PNG at the chosen image size and
+background, with a credit line naming Mol* if that option is ticked. The image is made in the
+visitor's browser, so it is instant and uses no render time. Like a render, it needs the
+visitor's details and adds a row to the Sheet (*Status* "preview image", the view in *Open
+again*), through `POST /api/preview-saved`; at most 30 per visitor in 10 minutes are recorded.
+The page asks people who publish one to cite Mol* (Sehnal et al., 2021,
+<https://doi.org/10.1093/nar/gkab314>), this tool and the PDB entry; **Render image** stays the
+publication-quality step.
+
 Turning or zooming the molecule ticks **Render this view**. The camera is then sent with the
 request as `camera`: position, target and up direction in ångström, in the structure file's
 coordinates, and the vertical field of view in degrees. Both programs keep those coordinates
@@ -213,7 +222,9 @@ Sheet in your own Google account:
 | Time | Name | Email | PDB ID | Style | Colour | … all options | Status | From cache | Render time (s) | Error | Open again | Source | Institution | Country |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 
-*Source* is **Web app** or **Colab** (renders made with the Colab notebook).
+*Source* is **Web app** or **Colab** (renders made with the Colab notebook). *Status* is
+**done** or **failed** for a render, and **preview image** when someone saved the 3D preview
+as an image instead (no render; *From cache* and *Render time* are empty).
 
 *Open again* is a link that reopens the site with the same settings, so you can see any
 image a person made without storing images anywhere. Names and emails are never shown to

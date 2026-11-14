@@ -550,6 +550,20 @@ const Preview = (() => {
         fov: Number(((s.fov * 180) / Math.PI).toFixed(2)),
       };
     },
+    /** The current view as a PNG data URI, width x height pixels (the viewer keeps this
+     *  aspect ratio, so the framing is the one on screen). */
+    async image(width, height, transparent) {
+      const helper = viewer.plugin.helpers.viewportScreenshot;
+      helper.behaviors.values.next({
+        ...helper.values,
+        resolution: { name: "custom", params: { width, height } },
+        transparent,
+        axes: { name: "off", params: {} },
+      });
+      helper.behaviors.cropParams.next({ ...helper.cropParams, auto: false });  // Mol* crops by default
+      helper.resetCrop();
+      return helper.getImageDataUri();
+    },
     /** Call after the viewer's box was hidden or changed size. */
     resize() { viewer?.plugin.canvas3d?.handleResize(); },
     get busy() { return Boolean(running); },

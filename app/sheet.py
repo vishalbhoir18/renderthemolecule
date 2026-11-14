@@ -15,6 +15,7 @@ from collections import deque
 import requests
 
 from .jobs import Job, Submitter
+from .options import RenderRequest
 
 log = logging.getLogger(__name__)
 
@@ -28,12 +29,26 @@ ROW_KEYS = [
 ]
 
 
+# Status of a row for a "Save preview image" (made in the browser by Mol*, no render).
+PREVIEW_STATUS = "preview image"
+
+
 def record_row(job: Job, submitter: Submitter) -> dict:
     req = job.request
     render_s = ""
     if not job.cached and job.started_at and job.finished_at:
         render_s = round(job.finished_at - job.started_at, 1)
-    row = {
+    return _row(req, submitter, status=job.status, cached="yes" if job.cached else "no",
+                render_s=render_s, error=job.error or "")
+
+
+def preview_row(req: RenderRequest, submitter: Submitter) -> dict:
+    """A preview image saved in the web app: what was saved and by whom."""
+    return _row(req, submitter, status=PREVIEW_STATUS, cached="", render_s="", error="")
+
+
+def _row(req: RenderRequest, submitter: Submitter, *, status: str, cached: str, render_s, error: str) -> dict:
+    return {
         "time": int(submitter.submitted_at * 1000),  # Unix ms; the script makes it a date
         "name": submitter.name,
         "email": submitter.email,
@@ -48,16 +63,15 @@ def record_row(job: Job, submitter: Submitter) -> dict:
         "ligands": "yes" if req.ligands else "no",
         "assembly": "yes" if req.assembly else "no",
         "credit": "yes" if req.credit else "no",
-        "status": job.status,
-        "cached": "yes" if job.cached else "no",
+        "status": status,
+        "cached": cached,
         "render_s": render_s,
-        "error": job.error or "",
+        "error": error,
         "link": f"{submitter.base_url}/?{req.share_query()}",
         "source": "Web app",
         "institution": submitter.institution,
         "country": submitter.country,
     }
-    return row
 
 
 class SheetRecorder:

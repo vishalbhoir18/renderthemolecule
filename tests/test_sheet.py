@@ -51,6 +51,15 @@ def test_record_row():
     assert cached["cached"] == "yes" and cached["render_s"] == ""
 
 
+def test_preview_row_has_the_same_columns():
+    req = RenderRequest(pdb_id="1ema", style="spheres")
+    submitter = Submitter("Ada", "a@b.org", "https://x", 1.0, institution="I", country="C")
+    row = sheet.preview_row(req, submitter)
+    assert list(row) == sheet.ROW_KEYS
+    assert (row["status"], row["cached"], row["render_s"], row["error"]) == ("preview image", "", "", "")
+    assert (row["source"], row["pdb_id"], row["style"]) == ("Web app", "1EMA", "spheres")
+
+
 def test_record_row_for_a_view_from_the_3d_preview():
     req = RenderRequest(pdb_id="1f2n", camera="149.63,50.82,142.57,105.44,-18.82,186.16,0,0,1,45")
     job = Job(req, req.cache_key(), "client", status="done", started_at=1.0, finished_at=2.0)
