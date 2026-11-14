@@ -81,6 +81,8 @@ def test_landing_page_links_and_images():
     page = (ROOT / "docs" / "index.html").read_text()
     for url in (about.SITE_URL, about.COLAB_URL, f"https://doi.org/{about.APP_DOI}", about.AUTHOR_URL):
         assert url in page, url
+    orcid = about.AUTHOR_ORCID  # in the footer, after the author's name
+    assert f'(<a href="{orcid}" target="_blank" rel="noopener">{orcid}</a>)' in page
     images = re.findall(r'src="(images/[^"]+)"', page)
     assert images
     for image in images:

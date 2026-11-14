@@ -166,7 +166,7 @@ kept until the Colab session ends.
     outro = f"""
 ---
 Render the Molecule App developed by [{about.AUTHOR}]({about.AUTHOR_URL})
-([https://doi.org/{doi}](https://doi.org/{doi})). Images are rendered with
+([{about.AUTHOR_ORCID}]({about.AUTHOR_ORCID})). Images are rendered with
 [Molecular Nodes](https://github.com/BradyAJohnston/MolecularNodes) by Brady Johnston and
 contributors, and [Blender](https://www.blender.org). Structures come from the
 [RCSB Protein Data Bank](https://www.rcsb.org). Free software under the GNU GPL v3:

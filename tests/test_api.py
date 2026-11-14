@@ -112,10 +112,12 @@ def test_index_and_options(client):
     assert 'href="/privacy"' in page.text
     assert 'Render the Molecule <span class="byline">by <a href="https://linktr.ee/thebioway"' in page.text
     assert 'Render the Molecule App developed by <a href="https://linktr.ee/thebioway"' in page.text
-    # The footer's DOI must match the one used in citations (app/about.py).
+    # The footer links the author's ORCID (app/about.py), after the name.
     from app import about
-    doi_url = f"https://doi.org/{about.APP_DOI}"
-    assert f'(<a href="{doi_url}" target="_blank" rel="noopener">{doi_url}</a>)' in page.text
+    orcid = about.AUTHOR_ORCID
+    assert f'(<a href="{orcid}" target="_blank" rel="noopener">{orcid}</a>)' in page.text
+    # "Save preview image", with the Mol* citation next to it.
+    assert 'id="save-preview"' in page.text and "https://doi.org/10.1093/nar/gkab314" in page.text
     assert client.get("/static/app.js").status_code == 200
     opts = client.get("/api/options").json()
     assert {c["value"] for c in opts["choices"]["style"]} >= {"cartoon", "surface"}

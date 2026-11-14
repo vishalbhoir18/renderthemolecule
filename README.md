@@ -85,6 +85,13 @@ the browser contacts no other site and the render that follows does not download
 keeps the viewer at the image's aspect ratio, and shows the selected preset view as Blender
 frames it.
 
+**Save preview image** downloads the Mol* view as a PNG at the chosen image size and
+background, with a credit line naming Mol* if that option is ticked. It is made in the
+visitor's browser, so it is instant, uses no server time and is not recorded in the Sheet.
+The page asks people who publish one to cite Mol* (Sehnal et al., 2021,
+<https://doi.org/10.1093/nar/gkab314>), this tool and the PDB entry; **Render image** stays the
+publication-quality step.
+
 Turning or zooming the molecule ticks **Render this view**. The camera is then sent with the
 request as `camera`: position, target and up direction in ångström, in the structure file's
 coordinates, and the vertical field of view in degrees. Both programs keep those coordinates

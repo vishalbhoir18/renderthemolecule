@@ -225,6 +225,7 @@ button.primary:disabled { opacity: 0.6; cursor: progress; }
 .viewer-message.is-error { color: #9b1c1c; }
 .viewer-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
 .viewer-bar .check { margin: 0; }
+.viewer-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 .pane > .note { margin: 0; }
 select:disabled { opacity: 0.6; }
 

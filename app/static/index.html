@@ -135,11 +135,19 @@
             <input type="checkbox" id="use_view" disabled>
             <span>Render this view <small>(turn and zoom the molecule, then render)</small></span>
           </label>
-          <button type="button" id="reset-view" class="button small" disabled>Reset view</button>
+          <span class="viewer-buttons">
+            <button type="button" id="reset-view" class="button small" disabled>Reset view</button>
+            <button type="button" id="save-preview" class="button small" disabled>Save preview image</button>
+          </span>
         </div>
         <p class="note">Drag to turn, scroll or pinch to zoom, right-drag or two fingers to move.
           A quick preview by <a href="https://molstar.org" target="_blank" rel="noopener">Mol*</a>;
           the render adds Blender's lighting and materials.</p>
+        <p class="note"><strong>Save preview image</strong> gives an instant PNG of this view, at the
+          chosen size and background. For publication quality (soft shadows, studio lighting), use
+          <strong>Render image</strong>. If you publish a preview image, please cite Mol*
+          (Sehnal et al., 2021, <a href="https://doi.org/10.1093/nar/gkab314" target="_blank" rel="noopener">https://doi.org/10.1093/nar/gkab314</a>),
+          this tool and the PDB entry.</p>
       </div>
 
       <div id="image-pane" class="pane" role="tabpanel" aria-labelledby="tab-image" hidden>
@@ -175,7 +183,7 @@
   <footer class="wrap site-footer">
     <p class="credit">
       Render the Molecule App developed by <a href="https://linktr.ee/thebioway" target="_blank" rel="noopener">Vishal Bhoir</a>
-      (<a href="https://doi.org/10.5281/zenodo.23960655" target="_blank" rel="noopener">https://doi.org/10.5281/zenodo.23960655</a>)
+      (<a href="https://orcid.org/0009-0004-8803-1967" target="_blank" rel="noopener">https://orcid.org/0009-0004-8803-1967</a>)
     </p>
     <p>
       Images are rendered with <a href="https://github.com/BradyAJohnston/MolecularNodes" target="_blank" rel="noopener">Molecular Nodes</a>

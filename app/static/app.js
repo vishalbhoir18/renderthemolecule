@@ -194,6 +194,7 @@ function updatePreview({ immediate = false } = {}) {
     const ready = Preview.shownId !== null;
     $("use_view").disabled = !ready && !linkCamera;
     $("reset-view").disabled = !ready;
+    $("save-preview").disabled = !ready;
     if (Preview.shownId === linkCamera?.pdb_id) linkCamera = null;
   }, immediate ? 0 : 500);
 }
@@ -222,6 +223,70 @@ $("reset-view").addEventListener("click", () => {
   setUseView(false);
   Preview.frame($("viewpoint").value);
 });
+
+// "Save preview image": the Mol* view as a PNG, straight from the browser (no server, no render).
+$("save-preview").addEventListener("click", async () => {
+  const button = $("save-preview");
+  const code = Preview.shownId;
+  if (!code) return;
+  const [width, height] = $("resolution").value.split("x").map(Number);
+  const background = $("background").value;
+  button.disabled = true;
+  button.textContent = "Saving…";
+  try {
+    const picture = await loadImage(await Preview.image(width, height, background === "transparent"));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(picture, 0, 0, width, height);
+    if ($("credit").checked) drawCredit(ctx, width, height, previewCredit(code), background);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${code}_${$("style").value}_${$("color").value}_preview.png`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 10000);
+  } catch (err) {
+    showViewerMessage(`The preview image could not be saved: ${err.message || err}`, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Save preview image";
+  }
+});
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("the image could not be read"));
+    image.src = src;
+  });
+}
+
+// Like the credit line on rendered images (app/about.py credit_line), naming Mol*.
+function previewCredit(code) {
+  return `PDB ${code.replace(/^pdb_0*/, "").toUpperCase()} · Mol* · Render the Molecule by Vishal Bhoir`;
+}
+
+// Small grey text in the bottom-right corner, scaled to the image (as _draw_credit in
+// app/blender_render.py).
+function drawCredit(ctx, width, height, text, background) {
+  const margin = Math.max(8, Math.round(width / 100));
+  let size = Math.max(11, Math.round(width / 90));
+  const font = (px) => `${px}px system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif`;
+  ctx.font = font(size);
+  while (ctx.measureText(text).width > width - 2 * margin && size > 8) {
+    size -= 1;
+    ctx.font = font(size);
+  }
+  ctx.fillStyle = { white: "rgb(110,110,110)", black: "rgb(165,165,165)" }[background] || "rgb(128,128,128)";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "bottom";
+  ctx.fillText(text, width - margin, height - margin);
+}
 
 function showError(message) {
   $("error").textContent = message;
