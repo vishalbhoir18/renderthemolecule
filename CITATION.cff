@@ -9,9 +9,17 @@ authors:
   - family-names: Bhoir
     given-names: Vishal
     orcid: "https://orcid.org/0009-0004-8803-1967"
-version: 0.1.0
+version: 0.2.0
+# Concept DOI: all versions, resolves to the latest release.
 doi: 10.5281/zenodo.23960655
-date-released: "2026-11-04"
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.23960655
+    description: All versions (concept DOI); resolves to the latest release
+  - type: doi
+    value: 10.5281/zenodo.24221994
+    description: Version 0.2.0
+date-released: "2026-11-13"
 license: GPL-3.0-or-later
 repository-code: "https://github.com/vishalbhoir18/renderthemolecule"
 abstract: >-
