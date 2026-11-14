@@ -225,15 +225,30 @@ $("reset-view").addEventListener("click", () => {
 });
 
 // "Save preview image": the Mol* view as a PNG, straight from the browser (no server, no render).
+// Like a render, it needs the visitor's details and is recorded in the Sheet (as "preview image").
 $("save-preview").addEventListener("click", async () => {
   const button = $("save-preview");
   const code = Preview.shownId;
   if (!code) return;
+  const values = { ...formValues(), pdb_id: code, camera: Preview.camera() };
+  showError("");
+  const problem = formProblem(values);
+  if (problem) {
+    showError(problem[0]);
+    problem[1].focus();
+    return;
+  }
+  writeStored(Object.fromEntries(VISITOR.map((field) => [field, values[field]])), VISITOR_KEY);
   const [width, height] = $("resolution").value.split("x").map(Number);
   const background = $("background").value;
   button.disabled = true;
   button.textContent = "Saving…";
   try {
+    const refused = await recordPreview(values);
+    if (refused) {
+      showError(refused);
+      return;
+    }
     const picture = await loadImage(await Preview.image(width, height, background === "transparent"));
     const canvas = document.createElement("canvas");
     canvas.width = width;
@@ -256,6 +271,20 @@ $("save-preview").addEventListener("click", async () => {
     button.textContent = "Save preview image";
   }
 });
+
+// Records the save; returns an error message only if the details were refused. If the
+// server cannot be reached, the image is saved anyway.
+async function recordPreview(values) {
+  try {
+    const resp = await fetch("/api/preview-saved", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+    if (resp.status === 422) return (await resp.json()).error || "Please check your details.";
+  } catch { /* not recorded; the image is still saved */ }
+  return null;
+}
 
 function loadImage(src) {
   return new Promise((resolve, reject) => {

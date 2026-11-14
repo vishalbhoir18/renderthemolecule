@@ -7,13 +7,16 @@ from __future__ import annotations
 
 import logging
 import re
+import threading
+import time
+from collections import deque
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
@@ -23,7 +26,7 @@ from .errors import QueueFull, TooManyJobs, UserError
 from .jobs import Job, JobManager, Submitter
 from .options import RenderRequest, Submission, option_lists
 from .renderer import RenderFn, make_renderer
-from .sheet import SheetRecorder, record_row
+from .sheet import SheetRecorder, preview_row, record_row
 from .storage import fetch_structure
 
 log = logging.getLogger(__name__)
@@ -36,6 +39,32 @@ SELF_EXPLAINING_FIELDS = {"pdb_id", "name", "email", "institution", "country"}
 
 def _error(status: int, message: str) -> JSONResponse:
     return JSONResponse({"error": message}, status_code=status)
+
+
+class RateLimiter:
+    """At most ``limit`` events per ``window`` seconds for each visitor."""
+
+    def __init__(self, limit: int, window: float):
+        self.limit, self.window = limit, window
+        self._events: dict[str, deque[float]] = {}
+        self._lock = threading.Lock()
+
+    def allow(self, client: str) -> bool:
+        now = time.monotonic()
+        with self._lock:
+            if len(self._events) > 10_000:  # forget visitors who have been quiet for a while
+                self._events = {k: v for k, v in self._events.items() if v and now - v[-1] < self.window}
+            events = self._events.setdefault(client, deque())
+            while events and now - events[0] >= self.window:
+                events.popleft()
+            if len(events) >= self.limit:
+                return False
+            events.append(now)
+            return True
+
+
+# Preview images are made in the browser; recording them must not let anyone flood the Sheet.
+PREVIEW_RECORDS_LIMIT = (30, 600)  # per visitor: 30 in 10 minutes
 
 
 def _client_id(request: Request) -> str:
@@ -150,6 +179,22 @@ def create_app(
             return _error(404, str(exc))
         return FileResponse(path, media_type="application/octet-stream",
                             headers={"Cache-Control": "public, max-age=86400"})
+
+    preview_limiter = RateLimiter(*PREVIEW_RECORDS_LIMIT)
+
+    @app.post("/api/preview-saved", status_code=204)
+    def preview_saved(body: Submission, request: Request):
+        """Record a "Save preview image" in the Google Sheet (the image itself never leaves
+        the visitor's browser). Same details and checks as a render."""
+        if not preview_limiter.allow(_client_id(request)):
+            return _error(429, "Many preview images in a short time; this one was not recorded.")
+        if recorder is not None:
+            submitter = Submitter(
+                name=body.name, email=body.email, base_url=_base_url(request, settings),
+                institution=body.institution, country=body.country,
+            )
+            recorder.add(preview_row(body.render_request(), submitter))
+        return Response(status_code=204)
 
     @app.post("/api/render", status_code=202)
     def submit(body: Submission, request: Request):
