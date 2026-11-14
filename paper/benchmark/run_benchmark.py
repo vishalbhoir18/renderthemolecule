@@ -175,20 +175,23 @@ def _wait(proc: subprocess.Popen, timeout: float):
         time.sleep(0.2)
 
 
-def write_run_info() -> None:
+def write_run_info(selected: list[str]) -> None:
     """Record what was benchmarked: commit, versions and hardware."""
     from app import about
     commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
     cpu = next((l.split(":", 1)[1].strip() for l in open("/proc/cpuinfo") if l.startswith("model name")), "")
     info = {"date": time.strftime("%Y-%m-%d"), "commit": commit, "versions": about.versions(),
             "cpu": cpu, "threads": SETTINGS.threads(), "python": platform.python_version(),
-            "memory_gb": round(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 2**30, 1)}
-    (HERE / "run_info.json").write_text(json.dumps(info, indent=2))
+            "memory_gb": round(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 2**30, 1),
+            "experiments": selected or list(experiments())}
+    path = HERE / "run_info.json"
+    runs = json.loads(path.read_text()) if path.exists() else []
+    path.write_text(json.dumps(runs + [info], indent=2))  # one record per run, oldest first
 
 
 def main(selected: list[str]) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    write_run_info()
+    write_run_info(selected)
     SETTINGS.ensure_dirs()
     done = set()
     if CSV_PATH.exists():

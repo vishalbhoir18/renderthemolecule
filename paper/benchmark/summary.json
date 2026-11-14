@@ -124,66 +124,66 @@
     {
       "pdb_id": "1AON",
       "view": "moved",
-      "iou": 0.822,
-      "centre_offset_pct": 0.36,
-      "area_ratio": 1.21,
-      "height_ratio": 1.003
+      "iou": 0.817,
+      "centre_offset_pct": 0.5,
+      "area_ratio": 1.213,
+      "height_ratio": 1.0
     },
     {
       "pdb_id": "1AON",
       "view": "preset",
-      "iou": 0.486,
-      "centre_offset_pct": 2.62,
-      "area_ratio": 1.841,
-      "height_ratio": 1.293
+      "iou": 0.833,
+      "centre_offset_pct": 0.29,
+      "area_ratio": 1.191,
+      "height_ratio": 1.003
     },
     {
       "pdb_id": "1BNA",
       "view": "moved",
-      "iou": 0.579,
-      "centre_offset_pct": 0.83,
-      "area_ratio": 1.629,
-      "height_ratio": 1.05
+      "iou": 0.58,
+      "centre_offset_pct": 0.32,
+      "area_ratio": 1.643,
+      "height_ratio": 1.058
     },
     {
       "pdb_id": "1BNA",
       "view": "preset",
-      "iou": 0.438,
-      "centre_offset_pct": 0.21,
-      "area_ratio": 1.987,
-      "height_ratio": 1.079
+      "iou": 0.509,
+      "centre_offset_pct": 1.08,
+      "area_ratio": 1.635,
+      "height_ratio": 1.003
     },
     {
       "pdb_id": "1EMA",
       "view": "moved",
-      "iou": 0.661,
-      "centre_offset_pct": 0.42,
-      "area_ratio": 1.449,
-      "height_ratio": 1.025
+      "iou": 0.658,
+      "centre_offset_pct": 0.59,
+      "area_ratio": 1.456,
+      "height_ratio": 1.02
     },
     {
       "pdb_id": "1EMA",
       "view": "preset",
-      "iou": 0.321,
-      "centre_offset_pct": 2.37,
-      "area_ratio": 2.122,
-      "height_ratio": 1.251
+      "iou": 0.659,
+      "centre_offset_pct": 0.5,
+      "area_ratio": 1.425,
+      "height_ratio": 1.003
     },
     {
       "pdb_id": "4HHB",
       "view": "moved",
-      "iou": 0.726,
-      "centre_offset_pct": 0.25,
-      "area_ratio": 1.35,
-      "height_ratio": 1.009
+      "iou": 0.725,
+      "centre_offset_pct": 0.27,
+      "area_ratio": 1.361,
+      "height_ratio": 1.0
     },
     {
       "pdb_id": "4HHB",
       "view": "preset",
-      "iou": 0.326,
-      "centre_offset_pct": 0.42,
-      "area_ratio": 2.481,
-      "height_ratio": 1.383
+      "iou": 0.743,
+      "centre_offset_pct": 0.19,
+      "area_ratio": 1.327,
+      "height_ratio": 1.003
     }
   ]
 }

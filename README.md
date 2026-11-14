@@ -402,19 +402,22 @@ Molecular Nodes has no paper yet; its authors ask to be cited through its Zenodo
 The page's own box uses the address of the live site in reference 1. GitHub's **"Cite this
 repository"** button (from `CITATION.cff`) gives the same reference in APA and BibTeX.
 
-**DOI.** Release v0.1.0 is archived on Zenodo as https://doi.org/10.5281/zenodo.23960655. Zenodo archives
-every new GitHub release automatically and gives it its own DOI. To make a release:
+**DOI.** Every GitHub release is archived on Zenodo, which gives it its own DOI. The tool is cited
+with the *concept DOI* https://doi.org/10.5281/zenodo.23960655 ("cite all versions"), which always
+resolves to the latest release, together with the exact version number from `APP_VERSION`; the
+app, the badge above, the footer, the landing page and the notebook all use it, so none of them
+change from release to release. Version 0.2.0 is https://doi.org/10.5281/zenodo.24221994.
+
+To make a release:
 
 1. Bump `APP_VERSION` in `app/about.py`, and `version:` and `date-released:` in `CITATION.cff`,
    so that the archived code already reports the new version. Bump `RENDER_VERSION` in
    `app/options.py` too, so cached images with the old version in their metadata are not reused.
    Merge this into `main`.
-2. On GitHub, open **Releases → Draft a new release**, create the tag (for example `v0.2.0`) on
-   `main`, and publish it. Zenodo archives it within minutes and shows its DOI.
-3. Put the new DOI in `APP_DOI` in `app/about.py`, as `doi:` in `CITATION.cff`, in the DOI badge
-   at the top of this README, in the footer of `app/static/index.html`, in `docs/index.html`, and
-   in the tests that quote it (`tests/test_credits.py`, `tests/test_api.py`); then regenerate the
-   notebook (`python notebooks/build_notebook.py`) and run `pytest`.
+2. On GitHub, open **Releases → Draft a new release**, create the tag (for example `v0.3.0`) on
+   `main`, and publish it. Zenodo archives it within minutes.
+3. Optionally, list the new version's own DOI under `identifiers:` in `CITATION.cff` and next to
+   the concept DOI in `app/about.py`.
 
 When a paper about the tool is published, cite the paper instead and keep the Zenodo DOI for
 the exact software version.

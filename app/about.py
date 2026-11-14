@@ -32,7 +32,10 @@ COLAB_URL = (
 )
 YEAR = "2026"
 # DOI of this tool once archived on Zenodo (e.g. "10.5281/zenodo.1234567"); see README.
-APP_DOI = "10.5281/zenodo.23960655"  # Zenodo record of release v0.1.0; replace with v0.2.0's once archived
+# Zenodo concept DOI ("cite all versions"): always resolves to the latest release, so it stays
+# the same from release to release; citations name the exact version with APP_VERSION.
+# Each release also has its own DOI (v0.2.0: 10.5281/zenodo.24221994); see README, "DOI".
+APP_DOI = "10.5281/zenodo.23960655"
 
 # Molecular Nodes has no paper yet; its README asks to be cited via Zenodo.
 MN_DOI = "10.5281/zenodo.22827864"
