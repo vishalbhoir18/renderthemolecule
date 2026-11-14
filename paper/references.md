@@ -10,7 +10,7 @@ Barker, M., Chue Hong, N. P., Katz, D. S., Lamprecht, A., Martinez-Ortiz, C., Ps
 
 Berman, H. M., Westbrook, J., Feng, Z., Gilliland, G., Bhat, T. N., Weissig, H., Shindyalov, I. N., & Bourne, P. E. (2000). The Protein Data Bank. *Nucleic Acids Research*, *28*(1), 235–242. <https://doi.org/10.1093/nar/28.1.235>
 
-Bhoir, V. (2026). *Render the Molecule* (Version 0.2.0) \[Computer software\]. Zenodo. DOI to be assigned on release; version 0.1.0: <https://doi.org/10.5281/zenodo.23960655>
+Bhoir, V. (2026). *Render the Molecule* (Version 0.2.0) \[Computer software\]. Zenodo. <https://doi.org/10.5281/zenodo.24221994>
 
 Bittrich, S., Bhikadiya, C., Bi, C., Chao, H., Duarte, J. M., Dutta, S., Fayazi, M., Henry, J., Khokhriakov, I., Lowe, R., Piehl, D. W., Segura, J., Vallat, B., Voigt, M., Westbrook, J. D., Burley, S. K., & Rose, Y. (2023). RCSB Protein Data Bank: Efficient searching and simultaneous access to one million computed structure models alongside the PDB structures enabled by architectural advances. *Journal of Molecular Biology*, *435*(14), 167994. <https://doi.org/10.1016/j.jmb.2023.167994>
 
