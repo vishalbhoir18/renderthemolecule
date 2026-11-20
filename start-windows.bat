@@ -3,6 +3,10 @@ rem Starts Render the Molecule on this PC at http://localhost:7860 and opens it 
 rem Close this window (or press Ctrl+C) to stop it. Run setup-windows.bat once before.
 setlocal
 cd /d "%~dp0"
+rem Give this copy of Blender its own user folder, so add-ons and extensions installed in
+rem the desktop Blender (for example Molecular Nodes, with its own nodebpy) are not loaded
+rem in place of the tested versions in .venv.
+set "BLENDER_USER_RESOURCES=%~dp0data\blender-user"
 if not exist ".venv\Scripts\python.exe" (
   echo Run setup-windows.bat first.
   pause
