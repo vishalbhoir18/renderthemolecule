@@ -1,2 +1,4 @@
 # Third-party build of the Mol* viewer: keep it out of diffs and language statistics.
 app/static/vendor/** linguist-vendored -diff
+# Windows batch files need Windows line endings.
+*.bat text eol=crlf

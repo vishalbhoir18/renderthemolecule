@@ -301,6 +301,44 @@ in or enter an email address. Before submitting there, make the details optional
   Source: Deploy from a branch → Branch: `main`, folder `/docs` → Save**. It appears at
   <https://vishalbhoir18.github.io/renderthemolecule/> a minute later.
 
+## Test changes on your own PC (Windows)
+
+Run the site on your own computer to try a change before it goes live. It is the same app as
+on Modal, at <http://localhost:7860>; nothing is published and nothing goes to the Google
+Sheet (the Sheet address is not set on your PC).
+
+**Once:**
+
+1. Install **Python 3.13** from <https://www.python.org/downloads/> (tick *Add python.exe to
+   PATH*; on the last screen, click *Disable path length limit* if offered) and
+   **GitHub Desktop** from <https://desktop.github.com>.
+2. In GitHub Desktop: *File → Clone repository → vishalbhoir18/renderthemolecule*.
+3. In the cloned folder, double-click **`setup-windows.bat`**. It installs Blender, Molecular
+   Nodes and the other packages into a `.venv` folder (about 1 GB, 5–15 minutes).
+
+**Each time:** double-click **`start-windows.bat`**. The app opens in your browser; close the
+black window to stop it. Rendered images and downloaded structures are kept in a `data`
+folder, so later renders and previews of the same entry are instant.
+
+**Checking a change before it goes live:**
+
+1. Changes are made on a branch and offered as a pull request on GitHub.
+2. In GitHub Desktop, click *Fetch origin*, choose that branch under *Current branch*, then
+   *Pull origin*. Run `start-windows.bat` (if it is already running, it restarts by itself
+   when Python files change; refresh the browser for changes to the page).
+3. Try it. If it is right, merge the pull request on GitHub: CI tests it and deploys it to
+   Modal. Switch GitHub Desktop back to `main` afterwards.
+
+To run the automatic tests as well (about 3 minutes, including real Blender renders):
+
+```bash
+.venv\Scripts\python -m pytest
+```
+
+On a Mac with an Apple chip, the same works from Terminal: `python3.13 -m venv .venv`, then
+`.venv/bin/python -m pip install -r requirements-dev.txt`, then
+`.venv/bin/python -m uvicorn --factory app.main:create_app --port 7860 --reload --reload-dir app`.
+
 ## Run it elsewhere
 
 The same image runs on any **x86-64** Docker host. Google Cloud Run and Cloudflare Containers
