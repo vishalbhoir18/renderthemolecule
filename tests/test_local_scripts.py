@@ -25,3 +25,12 @@ def test_start_runs_the_app_and_reloads_only_on_app_changes():
     # Watching only app/ keeps the reloader away from the thousands of files in .venv.
     assert "--reload --reload-dir app" in text
     assert "http://localhost:7860" in text
+
+
+def test_both_scripts_keep_the_desktop_blenders_add_ons_out():
+    # Without this, extensions of an installed desktop Blender 5.2 (such as Molecular Nodes,
+    # which brings a newer nodebpy) are imported before .venv and molecularnodes fails to load.
+    for name in ("setup-windows.bat", "start-windows.bat"):
+        text = script(name)
+        assert 'set "BLENDER_USER_RESOURCES=%~dp0data\\blender-user"' in text, name
+        assert text.index("BLENDER_USER_RESOURCES") < text.index(".venv\\Scripts\\python.exe"), name

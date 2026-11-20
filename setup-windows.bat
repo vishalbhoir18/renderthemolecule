@@ -4,6 +4,10 @@ rem Molecular Nodes and the web app's packages. About 1 GB to download.
 rem Needs Python 3.13 from https://www.python.org/downloads/
 setlocal
 cd /d "%~dp0"
+rem Give this copy of Blender its own user folder, so add-ons and extensions installed in
+rem the desktop Blender (for example Molecular Nodes, with its own nodebpy) are not loaded
+rem in place of the tested versions in .venv.
+set "BLENDER_USER_RESOURCES=%~dp0data\blender-user"
 
 set "PY="
 py -3.13 -c "import sys" >nul 2>&1
